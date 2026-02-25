@@ -209,7 +209,7 @@ body{
 <div class="start-screen" id="startScr">
   <div class="start-icon">🚛</div>
   <div class="start-title">WACOMS ごみ収集記録</div>
-  <div class="start-ver">v1.3.0</div>
+  <div class="start-ver">v1.3.1</div>
   <div class="start-desc">マイクを許可して音声入力を使います。<br>ボタンをタップして開始してください。</div>
   <button class="start-btn" id="startBtn" onclick="onStart()">🎤 開始（マイク許可）</button>
   <div class="start-status" id="startSt"></div>
@@ -342,6 +342,7 @@ let P=[],T=[],R=[],pI=0,tI=0,qty='0',numV='';
 let cTab='place',eI=-1,ePh=null;
 let vOn=false,vS=0,rec=null,gLa=null,gLo=null;
 let micOK=false,ttsOK=false,srOK=false;
+let permErrCount=0; // Guard against permission prompt loop
 const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
 // ===== PERMISSION (single tap) =====
@@ -353,8 +354,9 @@ function onStart(){
   navigator.mediaDevices.getUserMedia({audio:true})
     .then(stream=>{
       micOK=true;st.textContent='✓ マイク許可OK';
-      // Keep stream reference, stop tracks (we just needed permission)
-      stream.getTracks().forEach(t=>t.stop());
+      // IMPORTANT: Keep stream ALIVE - do NOT stop tracks
+      // iOS Safari revokes mic permission if stream is closed
+      window._micStream=stream;
       // Unlock AudioContext
       try{
         const ac=new(window.AudioContext||window.webkitAudioContext)();
@@ -501,23 +503,41 @@ function initSR(){
     if(fin)procV(fin);
   };
   rec.onend=()=>{
-    if(vOn&&vS>0&&vS<=3)setTimeout(()=>{if(vOn&&vS>0&&vS<=3)startR();},iOS?400:150);
+    if(vOn&&vS>0&&vS<=3&&permErrCount<2)setTimeout(()=>{if(vOn&&vS>0&&vS<=3)startR();},iOS?400:150);
     else{vOn=false;$('vBtn').classList.remove('listening');if(!vS){$('vStep').textContent='タップで音声入力';$('vText').textContent='待機中';}}
   };
   rec.onerror=e=>{
-    if(e.error==='no-speech'&&vOn)setTimeout(()=>{if(vOn)startR();},iOS?500:200);
-    else if(e.error==='not-allowed'){toast('マイク許可が必要です');vOn=false;vS=0;$('vBtn').classList.remove('listening');micOK=false;updMic();}
+    console.log('SR error:',e.error);
+    if(e.error==='no-speech'&&vOn){permErrCount=0;setTimeout(()=>{if(vOn)startR();},iOS?500:200);}
+    else if(e.error==='not-allowed'){
+      permErrCount++;
+      if(permErrCount>=2){
+        // Permission loop detected - stop everything
+        vOn=false;vS=0;$('vBtn').classList.remove('listening');
+        $('vStep').textContent='マイク再許可が必要';
+        $('vText').textContent='ページをリロードしてください';
+        toast('マイクの許可をやり直してください');
+        micOK=false;updMic();
+        return;
+      }
+      toast('マイク許可が必要です');vOn=false;vS=0;$('vBtn').classList.remove('listening');micOK=false;updMic();
+    }else if(e.error==='aborted'){/* intentional stop */}
   };
 }
 function startR(){
-  if(!rec||!vOn)return;
+  if(!rec||!vOn||!micOK)return;
+  if(permErrCount>=2)return; // Don't retry if in permission loop
   try{rec.abort();}catch(e){}
-  setTimeout(()=>{try{rec.start();}catch(e){setTimeout(()=>{try{rec.start();}catch(x){}},500);}},iOS?250:80);
+  setTimeout(()=>{try{rec.start();permErrCount=0;}catch(e){
+    console.log('recog.start error:',e);
+    // Single retry only
+    setTimeout(()=>{try{rec.start();permErrCount=0;}catch(x){console.log('recog.start final fail:',x);}},500);
+  }},iOS?250:80);
 }
 function toggleVoice(){
   if(!rec||!micOK){toast('マイク許可が必要です');return;}
   if(vOn){vOn=false;vS=0;speechSynthesis&&speechSynthesis.cancel();try{rec.abort();}catch(e){}$('vBtn').classList.remove('listening');$('vStep').textContent='タップで音声入力';$('vText').textContent='待機中';return;}
-  vOn=true;vS=1;$('vBtn').classList.add('listening');
+  vOn=true;vS=1;permErrCount=0;$('vBtn').classList.add('listening');
   $('vStep').textContent='1/3：収集場所';$('vText').textContent='聞いています...';
   speak('収集場所を話してください',()=>{if(vOn)startR();});
 }
