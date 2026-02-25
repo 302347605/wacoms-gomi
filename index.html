@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>WACOMS ごみ収集記録</title>
+<style>
+:root{
+  --primary:#2E7D32;--primary-light:#4CAF50;--danger:#C62828;
+  --bg:#E8E8E0;--text:#212121;--text-sec:#616161;--border:#BDBDBD;--header-bg:#37474F;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;
+  overflow-x:hidden;min-height:100vh;min-height:100dvh;
+}
+
+/* ===== START SCREEN ===== */
+.start-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;text-align:center;
+}
+.start-screen.hidden{display:none;}
+.start-icon{font-size:56px;margin-bottom:12px;}
+.start-title{font-size:20px;font-weight:800;margin-bottom:6px;}
+.start-ver{font-size:11px;color:var(--text-sec);margin-bottom:16px;}
+.start-desc{font-size:13px;color:var(--text-sec);margin-bottom:24px;line-height:1.6;max-width:280px;}
+.start-btn{
+  padding:16px 48px;border:none;border-radius:12px;
+  background:var(--primary);color:#fff;font-size:18px;font-weight:700;
+  cursor:pointer;box-shadow:0 4px 16px rgba(46,125,50,0.3);transition:all 0.2s;
+}
+.start-btn:active{transform:scale(0.96);}
+.start-status{margin-top:14px;font-size:12px;color:var(--text-sec);min-height:18px;}
+.start-skip{
+  margin-top:10px;font-size:12px;color:var(--text-sec);
+  background:none;border:none;text-decoration:underline;cursor:pointer;
+}
+
+/* ===== HEADER ===== */
+.header{
+  background:var(--header-bg);color:#fff;padding:4px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:36px;position:sticky;top:0;z-index:100;
+}
+.header-title{font-size:14px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.status-item{display:flex;align-items:center;gap:3px;font-size:10px;}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--primary-light);}
+.mic-ind{
+  display:flex;align-items:center;gap:3px;font-size:10px;
+  padding:2px 6px;border-radius:8px;background:rgba(255,255,255,0.15);
+}
+.mic-ind .d{width:8px;height:8px;border-radius:50%;}
+.mic-ind .d.on{background:#4CAF50;}.mic-ind .d.off{background:#C62828;}
+
+/* ===== VOICE BAR ===== */
+.voice-bar{display:flex;align-items:center;gap:8px;margin-left:12px;}
+.voice-btn{
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:var(--primary-light);color:#fff;font-size:14px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;
+}
+.voice-btn.listening{background:var(--danger);animation:pulse 1.2s infinite;}
+.voice-btn.disabled{background:#999;pointer-events:none;opacity:0.6;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(198,40,40,0.4);}50%{box-shadow:0 0 0 8px rgba(198,40,40,0);}}
+.voice-info{font-size:10px;line-height:1.3;max-width:180px;}
+.voice-step{opacity:0.7;}.voice-text{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ===== APP BODY ===== */
+.app-body{display:flex;flex-direction:column;height:calc(100vh - 36px);height:calc(100dvh - 36px);}
+
+/* ===== INPUT AREA ===== */
+.input-area{display:flex;align-items:stretch;padding:6px;gap:6px;flex-shrink:0;}
+.photo-box{
+  width:90px;min-height:80px;background:#D0D0C8;border:2px solid var(--border);
+  border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.photo-box img{width:100%;height:100%;object-fit:cover;}
+.photo-box .no-photo{font-size:10px;color:#999;text-align:center;}
+.photo-box .no-photo span{font-size:24px;display:block;}
+.input-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0;}
+.input-col .arr{
+  width:100%;max-width:120px;height:28px;border:1px solid var(--border);
+  border-radius:5px;background:#F0F0E8;font-size:16px;color:#1565C0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.input-col .arr:active{background:#D0D0C8;}
+.iv{
+  width:100%;max-width:120px;height:40px;border:2px solid var(--border);
+  border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;cursor:pointer;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;padding:0 4px;transition:border-color 0.2s;
+}
+.iv.active{border-color:var(--primary);background:#E8F5E9;}
+.iv.qty{font-size:28px;max-width:100px;}
+.il{font-size:10px;color:var(--text-sec);text-align:center;white-space:nowrap;}
+.qty-col{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:0.8;}
+.rec-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex-shrink:0;padding-bottom:2px;}
+.rec-btn{
+  padding:8px 16px;border:2px solid var(--primary);border-radius:6px;
+  background:#fff;color:var(--primary);font-size:16px;font-weight:900;
+  cursor:pointer;white-space:nowrap;transition:all 0.15s;
+}
+.rec-btn:active{background:var(--primary);color:#fff;}
+
+/* ===== RECORD LIST ===== */
+.rec-area{flex:1;display:flex;flex-direction:column;min-height:0;border-top:2px solid var(--border);background:#F5F5F0;}
+.rec-hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 10px;font-size:12px;font-weight:700;background:#E0E0D8;flex-shrink:0;
+}
+.rec-hdr-btns{display:flex;gap:6px;}
+.rec-hdr-btns button{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:#fff;cursor:pointer;}
+.rec-hdr-btns .del{color:var(--danger);border-color:var(--danger);}
+.rec-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.ri{display:grid;grid-template-columns:56px 1fr 1fr 44px;padding:5px 10px;border-bottom:1px solid #E0E0D8;font-size:12px;align-items:center;}
+.ri:nth-child(even){background:rgba(255,255,255,0.5);}
+.rt{color:var(--text-sec);font-size:11px;}.rp{font-weight:600;}.ry{color:var(--text-sec);}.rq{text-align:right;font-weight:700;color:var(--primary);}
+.no-rec{padding:16px;text-align:center;color:#999;font-size:12px;}
+
+/* ===== TOOLBAR ===== */
+.toolbar{display:flex;gap:6px;padding:4px 10px;background:#E0E0D8;border-top:1px solid var(--border);flex-shrink:0;}
+.tb{flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:600;text-align:center;cursor:pointer;}
+.tb:active{background:#E0E0E0;}.tb span{font-size:14px;margin-right:2px;}
+
+/* ===== NUMPAD ===== */
+.np-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:flex-end;padding:10px;}
+.np-ovl.show{display:flex;}
+.np-pan{background:#D8D8D0;border-radius:10px;padding:8px;width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:sIn .2s ease-out;}
+@keyframes sIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.np-disp{background:#fff;border-radius:6px;padding:8px 12px;font-size:28px;font-weight:700;text-align:right;margin-bottom:6px;min-height:44px;}
+.np-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.nk{height:40px;border:none;border-radius:6px;background:#fff;font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.1);}
+.nk:active{background:#E0E0E0;}
+.nk.fn{background:#B0BEC5;color:#fff;font-size:11px;font-weight:700;}
+.nk.enter{background:var(--primary);color:#fff;grid-row:span 2;font-size:13px;font-weight:700;}
+
+/* ===== SETTINGS ===== */
+.set-ovl{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column;}
+.set-ovl.show{display:flex;}
+.set-hdr{background:var(--header-bg);color:#fff;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;height:36px;}
+.set-hdr h2{font-size:14px;}
+.set-x{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;}
+.set-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;}
+.set-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.set-tab{flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;}
+.set-tab.active{border-color:var(--primary);background:#E8F5E9;color:var(--primary);}
+.ml{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.mi{background:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px;}
+.mi-ph{width:40px;height:40px;border-radius:6px;background:#E0E0E0;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#999;}
+.mi-ph img{width:100%;height:100%;object-fit:cover;}
+.mi-i{flex:1;min-width:0;}.mi-n{font-weight:700;font-size:13px;}.mi-s{font-size:10px;color:var(--text-sec);}
+.mi-a{display:flex;gap:4px;}
+.mi-a button{width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;cursor:pointer;}
+.mi-a .del{color:var(--danger);border-color:var(--danger);}
+.add-btn{width:100%;padding:10px;border:2px dashed var(--border);border-radius:8px;background:transparent;font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;}
+
+/* ===== FORM ===== */
+.frm-ovl{display:none;position:fixed;inset:0;background:var(--bg);z-index:400;flex-direction:column;}
+.frm-ovl.show{display:flex;}
+.frm-body{flex:1;overflow-y:auto;padding:10px;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--text-sec);margin-bottom:4px;}
+.fg input{width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:6px;font-size:15px;background:#fff;appearance:none;}
+.fg input:focus{outline:none;border-color:var(--primary);}
+.pp{width:100px;height:100px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;cursor:pointer;overflow:hidden;background:#fff;font-size:11px;color:var(--text-sec);}
+.pp span{font-size:28px;}.pp img{width:100%;height:100%;object-fit:cover;}
+.frm-sv{width:100%;padding:12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer;}
+
+/* ===== EXPORT ===== */
+.exp-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:250;align-items:center;justify-content:center;padding:16px;}
+.exp-ovl.show{display:flex;}
+.exp-box{background:#fff;border-radius:12px;width:100%;max-width:320px;padding:16px;}
+.exp-box h3{font-size:14px;margin-bottom:8px;text-align:center;}
+.exp-box textarea{width:100%;height:160px;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;margin-bottom:8px;}
+.exp-btns{display:flex;gap:6px;}
+.exp-btns button{flex:1;padding:8px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;}
+.exp-btns .cp{background:var(--primary);color:#fff;}.exp-btns .cl{background:#E0E0E0;}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;top:44px;left:50%;transform:translateX(-50%) translateY(-16px);
+  background:rgba(0,0,0,0.85);color:#fff;padding:6px 16px;border-radius:16px;
+  font-size:13px;font-weight:600;z-index:500;opacity:0;transition:all 0.3s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== PORTRAIT ===== */
+@media(orientation:portrait){
+  .input-area{flex-wrap:wrap;justify-content:center;}
+  .photo-box{width:100%;height:80px;}
+  .input-col,.qty-col{flex:1 1 30%;min-width:80px;}
+  .iv{max-width:100%;}.iv.qty{max-width:100%;}.input-col .arr{max-width:100%;}
+  .rec-col{width:100%;padding:4px 0;}
+  .rec-btn{width:100%;padding:12px;font-size:18px;background:var(--primary);color:#fff;border-radius:8px;}
+  .np-ovl{align-items:flex-end;justify-content:center;}
+  .np-pan{width:100%;max-width:340px;border-radius:12px 12px 0 0;}
+}
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div class="start-screen" id="startScr">
+  <div class="start-icon">🚛</div>
+  <div class="start-title">WACOMS ごみ収集記録</div>
+  <div class="start-ver">v1.3.0</div>
+  <div class="start-desc">マイクを許可して音声入力を使います。<br>ボタンをタップして開始してください。</div>
+  <button class="start-btn" id="startBtn" onclick="onStart()">🎤 開始（マイク許可）</button>
+  <div class="start-status" id="startSt"></div>
+  <button class="start-skip" onclick="enterApp(false)">音声なしで使う</button>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">WACOMS ごみ収集記録</div>
+  <div class="voice-bar">
+    <button class="voice-btn disabled" id="vBtn" onclick="toggleVoice()">🎤</button>
+    <div class="voice-info">
+      <div class="voice-step" id="vStep">タップで音声入力</div>
+      <div class="voice-text" id="vText">待機中</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div>
+    <div class="status-item"><span style="font-size:15px;opacity:0.8">🎧</span><span>接続中</span></div>
+    <div class="status-item"><div class="status-dot"></div><span>接続中</span></div>
+  </div>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body">
+  <div class="input-area">
+    <div class="photo-box" id="pBox"><div class="no-photo"><span>📷</span>写真なし</div></div>
+    <div class="input-col">
+      <button class="arr" onclick="cyP(-1)">▲</button>
+      <div class="iv" id="pVal">---</div>
+      <button class="arr" onclick="cyP(1)">▼</button>
+      <div class="il">収集場所</div>
+    </div>
+    <div class="input-col">
+      <button class="arr" onclick="cyT(-1)">▲</button>
+      <div class="iv" id="tVal">---</div>
+      <button class="arr" onclick="cyT(1)">▼</button>
+      <div class="il">ごみ種別</div>
+    </div>
+    <div class="qty-col">
+      <div class="iv qty" id="qVal" onclick="openNP()">0</div>
+      <div class="il">収集量</div>
+    </div>
+    <div class="rec-col">
+      <button class="rec-btn" onclick="saveRec()">記録</button>
+    </div>
+  </div>
+  <div class="rec-area">
+    <div class="rec-hdr">
+      <span>📋 記録一覧</span>
+      <div class="rec-hdr-btns">
+        <button onclick="showExp()">CSV</button>
+        <button class="del" onclick="clearRecs()">全削除</button>
+      </div>
+    </div>
+    <div class="rec-scroll" id="recScr"><div class="no-rec">記録がありません</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="tb" onclick="openSet()"><span>⚙️</span>設定</button>
+    <button class="tb" onclick="showExp()"><span>📤</span>エクスポート</button>
+  </div>
+</div>
+
+<!-- NUMPAD -->
+<div class="np-ovl" id="npOvl" onclick="if(event.target===this){qty=numV||'0';this.classList.remove('show');upd();}">
+  <div class="np-pan" onclick="event.stopPropagation()">
+    <div class="np-disp" id="npD">0</div>
+    <div class="np-grid">
+      <button class="nk" onclick="nk('7')">7</button><button class="nk" onclick="nk('8')">8</button>
+      <button class="nk" onclick="nk('9')">9</button><button class="nk fn" onclick="nk('C')">Clear</button>
+      <button class="nk" onclick="nk('4')">4</button><button class="nk" onclick="nk('5')">5</button>
+      <button class="nk" onclick="nk('6')">6</button><button class="nk fn" onclick="nk('B')">⌫</button>
+      <button class="nk" onclick="nk('1')">1</button><button class="nk" onclick="nk('2')">2</button>
+      <button class="nk" onclick="nk('3')">3</button><button class="nk enter" onclick="nk('E')">Enter</button>
+      <button class="nk" onclick="nk('0')">0</button><button class="nk" onclick="nk('.')">.</button>
+      <button class="nk" onclick="nk('-')">-</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="set-ovl" id="setOvl">
+  <div class="set-hdr"><h2>⚙️ マスター設定</h2><button class="set-x" onclick="closeSet()">✕</button></div>
+  <div class="set-body">
+    <div class="set-tabs">
+      <button class="set-tab active" id="tabP" onclick="swT('place')">📍 収集場所</button>
+      <button class="set-tab" id="tabT" onclick="swT('type')">🗑️ ごみ種別</button>
+    </div>
+    <div id="mCtn"></div>
+    <button class="add-btn" onclick="addM()">＋ 新規追加</button>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="frm-ovl" id="frmOvl">
+  <div class="set-hdr"><h2 id="frmTtl">追加</h2><button class="set-x" onclick="closeFrm()">✕</button></div>
+  <div class="frm-body">
+    <div class="fg" id="fgPh">
+      <label>写真</label>
+      <div class="pp" id="pp" onclick="$('phIn').click()"><span>📷</span>タップで撮影/選択</div>
+      <input type="file" id="phIn" accept="image/*" capture="environment" style="display:none" onchange="onPh(event)">
+    </div>
+    <div class="fg"><label>名前</label><input type="text" id="fN" placeholder="名前を入力"></div>
+    <div class="fg" id="fgGps">
+      <label>GPS座標 <button style="font-size:10px;background:var(--primary);color:#fff;border:none;border-radius:3px;padding:2px 6px;cursor:pointer" onclick="getGPS()">現在地取得</button></label>
+      <input type="text" id="fLa" placeholder="緯度">
+      <input type="text" id="fLo" placeholder="経度" style="margin-top:4px">
+    </div>
+    <button class="frm-sv" onclick="saveFrm()">保存</button>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="exp-ovl" id="eOvl" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="exp-box" onclick="event.stopPropagation()">
+    <h3>📋 CSVエクスポート</h3>
+    <textarea id="eTxt" readonly></textarea>
+    <div class="exp-btns">
+      <button class="cl" onclick="$('eOvl').classList.remove('show')">閉じる</button>
+      <button class="cp" onclick="cpExp()">コピー</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let P=[],T=[],R=[],pI=0,tI=0,qty='0',numV='';
+let cTab='place',eI=-1,ePh=null;
+let vOn=false,vS=0,rec=null,gLa=null,gLo=null;
+let micOK=false,ttsOK=false,srOK=false;
+const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+
+// ===== PERMISSION (single tap) =====
+function onStart(){
+  const btn=$('startBtn'),st=$('startSt');
+  btn.disabled=true;st.textContent='マイクの許可を要求中...';
+
+  // getUserMedia MUST be first call in user gesture on iOS
+  navigator.mediaDevices.getUserMedia({audio:true})
+    .then(stream=>{
+      micOK=true;st.textContent='✓ マイク許可OK';
+      // Keep stream reference, stop tracks (we just needed permission)
+      stream.getTracks().forEach(t=>t.stop());
+      // Unlock AudioContext
+      try{
+        const ac=new(window.AudioContext||window.webkitAudioContext)();
+        const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();
+        s.buffer=b;s.connect(ac.destination);s.start(0);
+        if(ac.state==='suspended')ac.resume();
+      }catch(e){}
+      // Unlock TTS
+      if(window.speechSynthesis){
+        ttsOK=true;
+        const u=new SpeechSynthesisUtterance('');u.volume=0;u.lang='ja-JP';
+        speechSynthesis.speak(u);speechSynthesis.getVoices();
+      }
+      // Check SR
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      srOK=!!SR;
+      setTimeout(()=>enterApp(true),500);
+    })
+    .catch(err=>{
+      btn.disabled=false;
+      if(err.name==='NotAllowedError'){
+        st.innerHTML='⚠️ マイクが拒否されました。<br>Safariの設定 → このサイト → マイク → 許可<br>に変更してからリロードしてください。';
+      }else{
+        st.textContent='エラー: '+err.message;
+      }
+      btn.textContent='再試行';
+    });
+}
+
+function enterApp(withMic){
+  $('startScr').classList.add('hidden');
+  if(!withMic){micOK=false;srOK=false;}
+  if(window.speechSynthesis){ttsOK=true;speechSynthesis.getVoices();}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!srOK)srOK=!!SR;
+  updMic();initApp();
+}
+
+function updMic(){
+  const d=$('micD'),l=$('micL'),b=$('vBtn');
+  if(micOK&&srOK){d.className='d on';l.textContent='ON';b.classList.remove('disabled');}
+  else{d.className='d off';l.textContent='OFF';b.classList.add('disabled');}
+}
+
+// ===== TTS =====
+function speak(text,cb){
+  if(!ttsOK||!speechSynthesis){if(cb)setTimeout(cb,100);return;}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='ja-JP';u.rate=1.1;u.volume=1.0;
+  const vs=speechSynthesis.getVoices();
+  const ja=vs.find(v=>v.lang&&v.lang.startsWith('ja'));
+  if(ja)u.voice=ja;
+  let done=false;
+  const fin=()=>{if(!done){done=true;if(cb)cb();}};
+  u.onend=fin;u.onerror=fin;
+  speechSynthesis.speak(u);
+  if(iOS){
+    const iv=setInterval(()=>{
+      if(!speechSynthesis.speaking){clearInterval(iv);fin();return;}
+      speechSynthesis.pause();speechSynthesis.resume();
+    },4000);
+    u.onend=()=>{clearInterval(iv);fin();};
+    u.onerror=()=>{clearInterval(iv);fin();};
+  }
+  setTimeout(fin,Math.max(3000,text.length*200));
+}
+
+// ===== INIT =====
+function initApp(){
+  ld();
+  if(!P.length){P=[{name:'ユニクロ',lat:35.6812,lng:139.7671,photo:null},{name:'コンビニ前',lat:35.6815,lng:139.7675,photo:null},{name:'公園入口',lat:35.6808,lng:139.7668,photo:null},{name:'駅前',lat:35.682,lng:139.768,photo:null}];sP();}
+  if(!T.length){T=[{name:'燃えるごみ'},{name:'リサイクル'},{name:'不燃ごみ'},{name:'ペットボトル'},{name:'缶・ビン'}];sT();}
+  upd();rRec();initGPS();initSR();
+}
+function ld(){try{P=JSON.parse(localStorage.getItem('wc_p')||'[]');T=JSON.parse(localStorage.getItem('wc_t')||'[]');R=JSON.parse(localStorage.getItem('wc_r')||'[]');}catch(e){}}
+function sP(){localStorage.setItem('wc_p',JSON.stringify(P));}
+function sT(){localStorage.setItem('wc_t',JSON.stringify(T));}
+function sR(){localStorage.setItem('wc_r',JSON.stringify(R));}
+
+// ===== GPS =====
+function initGPS(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.watchPosition(p=>{gLa=p.coords.latitude;gLo=p.coords.longitude;sortP();upd();},()=>{},{enableHighAccuracy:true,maximumAge:10000});
+}
+function sortP(){
+  if(gLa===null||!P.length)return;
+  const cn=P[pI]?.name;
+  P.sort((a,b)=>ds(gLa,gLo,a.lat,a.lng)-ds(gLa,gLo,b.lat,b.lng));
+  sP();const ni=P.findIndex(p=>p.name===cn);pI=ni>=0?ni:0;
+}
+function ds(a,b,c,d){
+  if(!c||!d)return Infinity;
+  const R=6371000,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;
+  const x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ===== DISPLAY =====
+function upd(){
+  if(P.length){pI=Math.max(0,Math.min(pI,P.length-1));$('pVal').textContent=P[pI].name;const ph=P[pI].photo;$('pBox').innerHTML=ph?`<img src="${ph}">`:'<div class="no-photo"><span>📷</span>写真なし</div>';}
+  else{$('pVal').textContent='---';$('pBox').innerHTML='<div class="no-photo"><span>📷</span>写真なし</div>';}
+  if(T.length){tI=Math.max(0,Math.min(tI,T.length-1));$('tVal').textContent=T[tI].name;}else $('tVal').textContent='---';
+  $('qVal').textContent=qty;
+}
+function cyP(d){if(!P.length)return;pI=(pI+d+P.length)%P.length;upd();}
+function cyT(d){if(!T.length)return;tI=(tI+d+T.length)%T.length;upd();}
+
+// ===== NUMPAD =====
+function openNP(){numV=qty==='0'?'':qty;$('npD').textContent=numV||'0';$('npOvl').classList.add('show');}
+function nk(k){
+  if(k==='C')numV='';else if(k==='B')numV=numV.slice(0,-1);
+  else if(k==='E'){qty=numV||'0';$('npOvl').classList.remove('show');upd();return;}
+  else{if(k==='.'&&numV.includes('.'))return;if(k==='-'&&numV.length>0)return;numV+=k;}
+  $('npD').textContent=numV||'0';
+}
+
+// ===== RECORD =====
+function saveRec(){
+  if(!P.length){toast('収集場所を設定してください');return;}
+  if(!T.length){toast('ごみ種別を設定してください');return;}
+  const now=new Date();
+  R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty,ts:now.getTime()});
+  sR();rRec();speak('記録しました');toast('✓ 記録しました');qty='0';upd();
+}
+function rRec(){
+  const c=$('recScr');
+  if(!R.length){c.innerHTML='<div class="no-rec">記録がありません</div>';return;}
+  c.innerHTML=R.slice(0,100).map(r=>`<div class="ri"><div class="rt">${r.time}</div><div class="rp">${r.place}</div><div class="ry">${r.type}</div><div class="rq">${r.qty}</div></div>`).join('');
+}
+function clearRecs(){if(!confirm('全ての記録を削除しますか？'))return;R=[];sR();rRec();toast('全削除しました');}
+
+// ===== SPEECH RECOGNITION =====
+function initSR(){
+  if(!srOK)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  rec=new SR();rec.lang='ja-JP';rec.interimResults=true;rec.continuous=false;
+  rec.onresult=e=>{
+    let fin='',int='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;else int+=e.results[i][0].transcript;
+    }
+    $('vText').textContent=fin||int||'...';
+    if(fin)procV(fin);
+  };
+  rec.onend=()=>{
+    if(vOn&&vS>0&&vS<=3)setTimeout(()=>{if(vOn&&vS>0&&vS<=3)startR();},iOS?400:150);
+    else{vOn=false;$('vBtn').classList.remove('listening');if(!vS){$('vStep').textContent='タップで音声入力';$('vText').textContent='待機中';}}
+  };
+  rec.onerror=e=>{
+    if(e.error==='no-speech'&&vOn)setTimeout(()=>{if(vOn)startR();},iOS?500:200);
+    else if(e.error==='not-allowed'){toast('マイク許可が必要です');vOn=false;vS=0;$('vBtn').classList.remove('listening');micOK=false;updMic();}
+  };
+}
+function startR(){
+  if(!rec||!vOn)return;
+  try{rec.abort();}catch(e){}
+  setTimeout(()=>{try{rec.start();}catch(e){setTimeout(()=>{try{rec.start();}catch(x){}},500);}},iOS?250:80);
+}
+function toggleVoice(){
+  if(!rec||!micOK){toast('マイク許可が必要です');return;}
+  if(vOn){vOn=false;vS=0;speechSynthesis&&speechSynthesis.cancel();try{rec.abort();}catch(e){}$('vBtn').classList.remove('listening');$('vStep').textContent='タップで音声入力';$('vText').textContent='待機中';return;}
+  vOn=true;vS=1;$('vBtn').classList.add('listening');
+  $('vStep').textContent='1/3：収集場所';$('vText').textContent='聞いています...';
+  speak('収集場所を話してください',()=>{if(vOn)startR();});
+}
+function procV(txt){
+  txt=txt.trim();
+  if(vS===1){
+    const m=bm(txt,P.map(p=>p.name));
+    if(m>=0){pI=m;upd();vS=2;$('vStep').textContent='2/3：ごみ種別';$('vText').textContent='聞いています...';try{rec.abort();}catch(e){}speak(P[m].name+'。ごみ種別を話してください',()=>{if(vOn&&vS===2)startR();});}
+    else{$('vText').textContent=`"${txt}" 一致なし`;speak('一致しません。もう一度お願いします');}
+  }else if(vS===2){
+    const m=bm(txt,T.map(t=>t.name));
+    if(m>=0){tI=m;upd();vS=3;$('vStep').textContent='3/3：収集量（数字）';$('vText').textContent='聞いています...';try{rec.abort();}catch(e){}speak(T[m].name+'。収集量を話してください',()=>{if(vOn&&vS===3)startR();});}
+    else{$('vText').textContent=`"${txt}" 一致なし`;speak('一致しません。もう一度お願いします');}
+  }else if(vS===3){
+    const n=pNum(txt);
+    if(n!==null){qty=String(n);upd();vS=0;vOn=false;try{rec.abort();}catch(e){}$('vBtn').classList.remove('listening');$('vStep').textContent='✓ 完了';const s=`${P[pI].name}、${T[tI].name}、${qty}`;$('vText').textContent=s;speak(`収集量${n}。${s}。記録ボタンを押してください`);}
+    else{$('vText').textContent=`"${txt}" 数値不明`;speak('数値がわかりません。もう一度お願いします');}
+  }
+}
+function bm(inp,list){
+  const s=inp.toLowerCase().replace(/\s/g,'');
+  let i=list.findIndex(x=>x.toLowerCase().replace(/\s/g,'')===s);if(i>=0)return i;
+  i=list.findIndex(x=>x.toLowerCase().replace(/\s/g,'').includes(s));if(i>=0)return i;
+  i=list.findIndex(x=>s.includes(x.toLowerCase().replace(/\s/g,'')));return i;
+}
+function pNum(t){
+  let c=t.replace(/[^0-9０-９.．一二三四五六七八九十百千万]/g,'');
+  c=c.replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0));c=c.replace(/[．]/g,'.');
+  const km={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'百':100,'千':1000,'万':10000};
+  if(/[一二三四五六七八九十百千万]/.test(c)){let r=0,cur=0;for(const ch of c){if(km[ch]!==undefined){const v=km[ch];if(v>=10){cur=(cur||1)*v;if(v>=10000){r+=cur;cur=0;}}else cur+=v;}}r+=cur;if(r>0)return r;}
+  const n=parseFloat(c);if(!isNaN(n))return n;
+  const dm=t.match(/[\d０-９]+[.．]?[\d０-９]*/);
+  if(dm){const x=parseFloat(dm[0].replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0)));if(!isNaN(x))return x;}
+  return null;
+}
+
+// ===== SETTINGS =====
+function openSet(){$('setOvl').classList.add('show');rM();}
+function closeSet(){$('setOvl').classList.remove('show');upd();}
+function swT(t){cTab=t;$('tabP').classList.toggle('active',t==='place');$('tabT').classList.toggle('active',t==='type');rM();}
+function rM(){
+  const items=cTab==='place'?P:T,c=$('mCtn');
+  if(!items.length){c.innerHTML='<div style="text-align:center;color:#999;padding:16px">データなし</div>';return;}
+  c.innerHTML='<div class="ml">'+items.map((it,i)=>{
+    if(cTab==='place'){const ph=it.photo?`<img src="${it.photo}">`:'📷';const d=gLa!==null&&it.lat?Math.round(ds(gLa,gLo,it.lat,it.lng))+'m':'---';return `<div class="mi"><div class="mi-ph">${ph}</div><div class="mi-i"><div class="mi-n">${it.name}</div><div class="mi-s">📍${d}</div></div><div class="mi-a"><button onclick="edM(${i})">✏️</button><button class="del" onclick="dlM(${i})">🗑</button></div></div>`;}
+    return `<div class="mi"><div class="mi-i"><div class="mi-n">${it.name}</div></div><div class="mi-a"><button onclick="edM(${i})">✏️</button><button class="del" onclick="dlM(${i})">🗑</button></div></div>`;
+  }).join('')+'</div>';
+}
+function dlM(i){if(!confirm('削除しますか？'))return;if(cTab==='place'){P.splice(i,1);sP();if(pI>=P.length)pI=Math.max(0,P.length-1);}else{T.splice(i,1);sT();if(tI>=T.length)tI=Math.max(0,T.length-1);}rM();}
+
+// ===== FORM =====
+function addM(){eI=-1;ePh=null;$('frmTtl').textContent='新規追加';$('fN').value='';$('fgPh').style.display=cTab==='place'?'':'none';$('fgGps').style.display=cTab==='place'?'':'none';$('fLa').value='';$('fLo').value='';$('pp').innerHTML='<span>📷</span>タップで撮影/選択';$('frmOvl').classList.add('show');}
+function edM(i){
+  eI=i;const items=cTab==='place'?P:T,it=items[i];
+  $('frmTtl').textContent='編集';$('fN').value=it.name;
+  $('fgPh').style.display=cTab==='place'?'':'none';$('fgGps').style.display=cTab==='place'?'':'none';
+  if(cTab==='place'){$('fLa').value=it.lat||'';$('fLo').value=it.lng||'';ePh=it.photo||null;$('pp').innerHTML=it.photo?`<img src="${it.photo}">`:'<span>📷</span>タップで撮影/選択';}
+  $('frmOvl').classList.add('show');
+}
+function closeFrm(){$('frmOvl').classList.remove('show');}
+function onPh(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=ev=>{const img=new Image();img.onload=()=>{const cv=document.createElement('canvas');const mx=300;let w=img.width,h=img.height;if(w>h){if(w>mx){h=h*mx/w;w=mx;}}else{if(h>mx){w=w*mx/h;h=mx;}}cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);ePh=cv.toDataURL('image/jpeg',0.7);$('pp').innerHTML=`<img src="${ePh}">`;};img.src=ev.target.result;};r.readAsDataURL(f);e.target.value='';
+}
+function getGPS(){
+  if(!navigator.geolocation){toast('GPS非対応');return;}toast('GPS取得中...');
+  navigator.geolocation.getCurrentPosition(p=>{$('fLa').value=p.coords.latitude.toFixed(6);$('fLo').value=p.coords.longitude.toFixed(6);toast('GPS取得完了');},()=>toast('GPS取得失敗'),{enableHighAccuracy:true});
+}
+function saveFrm(){
+  const name=$('fN').value.trim();if(!name){toast('名前を入力');return;}
+  if(cTab==='place'){const it={name,lat:parseFloat($('fLa').value)||0,lng:parseFloat($('fLo').value)||0,photo:ePh};eI>=0?P[eI]=it:P.push(it);sP();}
+  else{const it={name};eI>=0?T[eI]=it:T.push(it);sT();}
+  closeFrm();rM();toast('保存しました');
+}
+
+// ===== EXPORT =====
+function showExp(){
+  if(!R.length){toast('記録がありません');return;}
+  const lines=['日付,時刻,収集場所,ごみ種別,収集量'];R.forEach(r=>lines.push(`${r.date},${r.time},${r.place},${r.type},${r.qty}`));
+  $('eTxt').value=lines.join('\n');$('eOvl').classList.add('show');
+}
+function cpExp(){const t=$('eTxt');t.select();try{navigator.clipboard.writeText(t.value);toast('コピーしました');}catch(e){document.execCommand('copy');toast('コピーしました');}}
+
+// ===== UTILS =====
+function $(id){return document.getElementById(id);}
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2000);}
+</script>
+</body>
+</html>
