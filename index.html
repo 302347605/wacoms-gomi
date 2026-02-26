@@ -90,7 +90,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="start-screen" id="startScr">
-<div class="start-icon">🚛</div><div class="start-title">WACOMS ごみ収集記録</div><div class="start-ver">v1.3.3</div>
+<div class="start-icon">🚛</div><div class="start-title">WACOMS ごみ収集記録</div><div class="start-ver">v1.4.1</div>
 <div class="start-desc">音声入力を使うにはマイクの許可が必要です。<br>ボタンをタップ後、Safariの確認で<b>「許可」</b>を選んでください。</div>
 <button class="start-btn" id="startBtn" onclick="onStart()">🎤 開始（マイク許可）</button>
 <div class="start-status" id="startSt"></div>
@@ -209,7 +209,7 @@ function initSR(){
     if(fin)procV(fin);
   };
   srObj.onend=function(){
-    if(vOn&&vS>0&&vS<=3){setTimeout(function(){if(vOn&&vS>0&&vS<=3)doStart();},isIOS?400:150);}
+    if(vOn&&vS>0&&vS<=10){setTimeout(function(){if(vOn&&vS>0&&vS<=10)doStart();},isIOS?400:150);}
     else{vOn=false;document.getElementById('vBtn').classList.remove('listening');if(!vS){document.getElementById('vStep').textContent='タップで音声入力';document.getElementById('vText').textContent='待機中';}}
   };
   srObj.onerror=function(e){
@@ -226,18 +226,149 @@ function doStart(){
     setTimeout(function(){if(vOn){try{srObj.start();}catch(x2){}}},300);
   }
 }
+// Track confirmed items across voice flow
+var vGotP=false,vGotT=false,vGotQ=false;
+
 function toggleVoice(){
   if(!srObj||!micOK){toast('マイク許可が必要です');return;}
-  if(vOn){vOn=false;vS=0;if(speechSynthesis)speechSynthesis.cancel();try{srObj.stop();}catch(e){}document.getElementById('vBtn').classList.remove('listening');document.getElementById('vStep').textContent='タップで音声入力';document.getElementById('vText').textContent='待機中';return;}
-  vOn=true;vS=1;document.getElementById('vBtn').classList.add('listening');
-  document.getElementById('vStep').textContent='1/3：収集場所';document.getElementById('vText').textContent='聞いています...';
-  speak('収集場所を話してください',function(){if(vOn)doStart();});
+  if(vOn){vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;if(speechSynthesis)speechSynthesis.cancel();try{srObj.stop();}catch(e){}document.getElementById('vBtn').classList.remove('listening');document.getElementById('vStep').textContent='タップで音声入力';document.getElementById('vText').textContent='待機中';return;}
+  vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;
+  document.getElementById('vBtn').classList.add('listening');
+  document.getElementById('vStep').textContent='場所、種別、数量をまとめて話してください';
+  document.getElementById('vText').textContent='聞いています...';
+  speak('場所、種別、数量をまとめて話してください',function(){if(vOn)doStart();});
 }
+
+// Check all 3 confirmed → complete, otherwise ask for next missing item
+function checkComplete(){
+  if(vGotP&&vGotT&&vGotQ){
+    vS=0;vOn=false;try{srObj.stop();}catch(e){}
+    document.getElementById('vBtn').classList.remove('listening');
+    document.getElementById('vStep').textContent='✓ 完了';
+    var s=P[pI].name+'、'+T[tI].name+'、'+qty;
+    document.getElementById('vText').textContent=s;
+    speak(s+'。記録ボタンを押してください');
+    return true;
+  }
+  return false;
+}
+
+function askNextMissing(){
+  if(!vGotP){
+    vS=1;
+    document.getElementById('vStep').textContent='収集場所を話してください';
+    document.getElementById('vText').textContent='聞いています...';
+    speak('収集場所が聞き取れません。収集場所を話してください',function(){if(vOn)doStart();});
+  }else if(!vGotT){
+    vS=2;
+    document.getElementById('vStep').textContent='ごみ種別を話してください';
+    document.getElementById('vText').textContent='聞いています...';
+    speak('ごみ種別が聞き取れません。ごみ種別を話してください',function(){if(vOn)doStart();});
+  }else if(!vGotQ){
+    vS=3;
+    document.getElementById('vStep').textContent='数量を話してください';
+    document.getElementById('vText').textContent='聞いています...';
+    speak('数量が聞き取れません。数量を話してください',function(){if(vOn)doStart();});
+  }
+}
+
 function procV(txt){
   txt=txt.trim();
-  if(vS===1){var m=bm(txt,P.map(function(p){return p.name;}));if(m>=0){pI=m;upd();vS=2;document.getElementById('vStep').textContent='2/3：ごみ種別';document.getElementById('vText').textContent='聞いています...';try{srObj.stop();}catch(e){}speak(P[m].name+'。ごみ種別を話してください',function(){if(vOn&&vS===2)doStart();});}else{document.getElementById('vText').textContent='"'+txt+'" 一致なし';speak('一致しません。もう一度お願いします');}}
-  else if(vS===2){var m2=bm(txt,T.map(function(t){return t.name;}));if(m2>=0){tI=m2;upd();vS=3;document.getElementById('vStep').textContent='3/3：収集量';document.getElementById('vText').textContent='聞いています...';try{srObj.stop();}catch(e){}speak(T[m2].name+'。収集量を話してください',function(){if(vOn&&vS===3)doStart();});}else{document.getElementById('vText').textContent='"'+txt+'" 一致なし';speak('一致しません。もう一度お願いします');}}
-  else if(vS===3){var n=pNum(txt);if(n!==null){qty=String(n);upd();vS=0;vOn=false;try{srObj.stop();}catch(e){}document.getElementById('vBtn').classList.remove('listening');document.getElementById('vStep').textContent='✓ 完了';var s=P[pI].name+'、'+T[tI].name+'、'+qty;document.getElementById('vText').textContent=s;speak('収集量'+n+'。'+s+'。記録ボタンを押してください');}else{document.getElementById('vText').textContent='"'+txt+'" 数値不明';speak('数値がわかりません。もう一度');}}
+  if(vS===10){
+    // === ONE-SHOT MODE ===
+    var parts=txt.split(/[、,\s　]+/);
+    var foundP=-1,foundT=-1,foundQ=null,usedIdx={};
+    for(var i=0;i<parts.length;i++){var m=bm(parts[i],P.map(function(p){return p.name;}));if(m>=0){foundP=m;usedIdx[i]=true;break;}}
+    for(var j=0;j<parts.length;j++){if(usedIdx[j])continue;var m2=bm(parts[j],T.map(function(t){return t.name;}));if(m2>=0){foundT=m2;usedIdx[j]=true;break;}}
+    for(var k=0;k<parts.length;k++){if(usedIdx[k])continue;var n=pNum(parts[k]);if(n!==null){foundQ=n;usedIdx[k]=true;break;}}
+    // Fallback: try full text matching
+    if(foundP<0){for(var pi=0;pi<P.length;pi++){if(txt.indexOf(P[pi].name)>=0){foundP=pi;break;}}}
+    if(foundT<0){for(var ti=0;ti<T.length;ti++){if(txt.indexOf(T[ti].name)>=0){foundT=ti;break;}}}
+    if(foundQ===null){foundQ=pNum(txt);}
+    // Set confirmed items
+    if(foundP>=0){pI=foundP;vGotP=true;upd();}
+    if(foundT>=0){tI=foundT;vGotT=true;upd();}
+    if(foundQ!==null){qty=String(foundQ);vGotQ=true;upd();}
+    // All found?
+    if(checkComplete())return;
+    // Build status and ask for missing
+    var confirmed=[];
+    if(vGotP)confirmed.push(P[pI].name);
+    if(vGotT)confirmed.push(T[tI].name);
+    if(vGotQ)confirmed.push(qty);
+    var status=confirmed.length>0?confirmed.join('、')+'は認識OK。':'';
+    document.getElementById('vText').textContent=status;
+    // Stop recognition, then ask for next missing with clear message
+    try{srObj.stop();}catch(e){}
+    if(!vGotP){
+      vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
+      speak(status+'収集場所が聞き取れません。収集場所を話してください',function(){if(vOn)doStart();});
+    }else if(!vGotT){
+      vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
+      speak(status+'ごみ種別が聞き取れません。ごみ種別を話してください',function(){if(vOn)doStart();});
+    }else{
+      vS=3;document.getElementById('vStep').textContent='数量を話してください';
+      speak(status+'数量が聞き取れません。数量を話してください',function(){if(vOn)doStart();});
+    }
+  }
+  else if(vS===1){
+    var m=bm(txt,P.map(function(p){return p.name;}));
+    if(m>=0){
+      pI=m;vGotP=true;upd();
+      document.getElementById('vText').textContent='場所:'+P[m].name+' ✓';
+      try{srObj.stop();}catch(e){}
+      if(checkComplete())return;
+      // Ask for next missing
+      if(!vGotT){
+        vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
+        speak(P[m].name+'。次に、ごみ種別を話してください',function(){if(vOn)doStart();});
+      }else if(!vGotQ){
+        vS=3;document.getElementById('vStep').textContent='数量を話してください';
+        speak(P[m].name+'。次に、数量を話してください',function(){if(vOn)doStart();});
+      }
+    }else{
+      document.getElementById('vText').textContent='"'+txt+'" → 収集場所が一致しません';
+      speak('収集場所が聞き取れません。もう一度、収集場所を話してください');
+    }
+  }
+  else if(vS===2){
+    var m2=bm(txt,T.map(function(t){return t.name;}));
+    if(m2>=0){
+      tI=m2;vGotT=true;upd();
+      document.getElementById('vText').textContent='種別:'+T[m2].name+' ✓';
+      try{srObj.stop();}catch(e){}
+      if(checkComplete())return;
+      if(!vGotQ){
+        vS=3;document.getElementById('vStep').textContent='数量を話してください';
+        speak(T[m2].name+'。次に、数量を話してください',function(){if(vOn)doStart();});
+      }else if(!vGotP){
+        vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
+        speak(T[m2].name+'。次に、収集場所を話してください',function(){if(vOn)doStart();});
+      }
+    }else{
+      document.getElementById('vText').textContent='"'+txt+'" → ごみ種別が一致しません';
+      speak('ごみ種別が聞き取れません。もう一度、ごみ種別を話してください');
+    }
+  }
+  else if(vS===3){
+    var n=pNum(txt);
+    if(n!==null){
+      qty=String(n);vGotQ=true;upd();
+      document.getElementById('vText').textContent='数量:'+qty+' ✓';
+      try{srObj.stop();}catch(e){}
+      if(checkComplete())return;
+      if(!vGotP){
+        vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
+        speak('数量'+n+'。次に、収集場所を話してください',function(){if(vOn)doStart();});
+      }else if(!vGotT){
+        vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
+        speak('数量'+n+'。次に、ごみ種別を話してください',function(){if(vOn)doStart();});
+      }
+    }else{
+      document.getElementById('vText').textContent='"'+txt+'" → 数量が聞き取れません';
+      speak('数量が聞き取れません。もう一度、数量を話してください');
+    }
+  }
 }
 function bm(inp,list){var s=inp.toLowerCase().replace(/\s/g,'');var i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'')===s;});if(i>=0)return i;i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'').indexOf(s)>=0;});if(i>=0)return i;i=list.findIndex(function(x){return s.indexOf(x.toLowerCase().replace(/\s/g,''))>=0;});return i;}
 function pNum(t){var c=t.replace(/[^0-9０-９.．一二三四五六七八九十百千万]/g,'');c=c.replace(/[０-９]/g,function(s){return String.fromCharCode(s.charCodeAt(0)-65248);});c=c.replace(/[．]/g,'.');var km={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,百:100,千:1000,万:10000};if(/[一二三四五六七八九十百千万]/.test(c)){var r=0,cur=0;for(var j=0;j<c.length;j++){var ch=c[j];if(km[ch]!==undefined){var v=km[ch];if(v>=10){cur=(cur||1)*v;if(v>=10000){r+=cur;cur=0;}}else cur+=v;}}r+=cur;if(r>0)return r;}var n=parseFloat(c);if(!isNaN(n))return n;var dm=t.match(/[\d０-９]+[.．]?[\d０-９]*/);if(dm){var x=parseFloat(dm[0].replace(/[０-９]/g,function(s){return String.fromCharCode(s.charCodeAt(0)-65248);}));if(!isNaN(x))return x;}return null;}
