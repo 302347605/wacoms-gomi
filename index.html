@@ -70,8 +70,8 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.1</span></div>
-<div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.2</span></div>
+<div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">マイクOFF</div></div></div>
 <div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
 <div class="app-body">
@@ -215,7 +215,7 @@ function micOff(){
   vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;
   document.getElementById('vBtn').classList.remove('listening');
   document.getElementById('vStep').textContent='🎤 タップで音声入力';
-  document.getElementById('vText').textContent='待機中';
+  document.getElementById('vText').textContent='マイクOFF';
 }
 
 // === VOICE FLOW ===
@@ -263,7 +263,7 @@ function checkComplete(){
       qty='0';upd();
       document.getElementById('vBtn').classList.remove('listening');
       document.getElementById('vStep').textContent='🎤 タップで音声入力';
-      document.getElementById('vText').textContent='待機中';
+      document.getElementById('vText').textContent='マイクOFF';
     });
     return true;
   }
