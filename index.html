@@ -70,7 +70,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.6.0</span></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.6.1</span></div>
 <div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
 <div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
@@ -97,6 +97,7 @@ var vOn=false,vS=0,srObj=null,gLa=null,gLo=null;
 var micOK=false,ttsOK=false;
 var srRunning=false,ttsActive=false;
 var vGotP=false,vGotT=false,vGotQ=false;
+var srRestarts=0; // consecutive restarts without result (limit=3)
 var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 var hasSR=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
@@ -133,9 +134,8 @@ function speakTTS(text){
 }
 
 // === SPEECH RECOGNITION ===
-// KEY DESIGN: start() is called ONCE on first mic tap.
-// Never call stop(). Never auto-restart. No banner flicker.
-// If iOS force-ends the session, user must tap mic again (user gesture → single start).
+// start() on first mic tap. Auto-restart in onend with delay + counter limit.
+// Counter prevents infinite banner loop. Reset on successful result.
 
 function createSR(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -144,21 +144,39 @@ function createSR(){
   srObj.interimResults=true;
   srObj.continuous=true;
   srObj.onresult=function(e){
-    if(ttsActive||!vOn)return; // ignore during TTS or when voice flow is off
+    if(ttsActive||!vOn)return;
     var fin='',interim='';
     for(var i=e.resultIndex;i<e.results.length;i++){
       if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
       else interim+=e.results[i][0].transcript;
     }
     document.getElementById('vText').textContent=fin||interim||'...';
-    if(fin)procV(fin);
+    if(fin){
+      srRestarts=0; // got a result → reset counter
+      procV(fin);
+    }
   };
   srObj.onend=function(){
-    // iOS forced end. Do NOT auto-restart (causes banner loop).
     srRunning=false;
     updMic();
-    if(vOn){
-      // Was in voice flow → notify user
+    // Auto-restart if in voice flow, within restart limit
+    if(vOn&&srRestarts<3){
+      srRestarts++;
+      document.getElementById('vText').textContent='再接続中...';
+      setTimeout(function(){
+        if(vOn&&!srRunning){
+          try{srObj.start();srRunning=true;updMic();
+            document.getElementById('vText').textContent='聞いています...';
+          }catch(e){
+            vOn=false;vS=0;
+            document.getElementById('vBtn').classList.remove('listening');
+            document.getElementById('vStep').textContent='🎤 タップで再開';
+            document.getElementById('vText').textContent='再接続失敗';
+          }
+        }
+      },1500);
+    }else if(vOn){
+      // Too many restarts → stop and ask user to tap
       vOn=false;vS=0;
       document.getElementById('vBtn').classList.remove('listening');
       document.getElementById('vStep').textContent='🎤 タップで再開';
@@ -166,7 +184,7 @@ function createSR(){
     }
   };
   srObj.onerror=function(e){
-    if(e.error==='no-speech'){/* normal, keep going */}
+    if(e.error==='no-speech'){/* normal, onend will handle restart */}
     else if(e.error==='not-allowed'){
       srRunning=false;micOK=false;vOn=false;vS=0;
       document.getElementById('vBtn').classList.remove('listening');
@@ -223,7 +241,7 @@ function toggleVoice(){
   }
 
   // Begin voice flow
-  vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;
+  vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;srRestarts=0;
   document.getElementById('vBtn').classList.add('listening');
   document.getElementById('vStep').textContent='場所、種別、数量をまとめて話してください';
   document.getElementById('vText').textContent='聞いています...';
