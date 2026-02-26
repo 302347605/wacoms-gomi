@@ -70,7 +70,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.2</span></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.4</span></div>
 <div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">マイクOFF</div></div></div>
 <div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
@@ -97,7 +97,8 @@ var vOn=false,vS=0,srObj=null,gLa=null,gLo=null;
 var micOK=false,ttsOK=false;
 var srRunning=false,ttsActive=false;
 var vGotP=false,vGotT=false,vGotQ=false;
-var srRestarts=0; // consecutive restarts without result (limit=15, ~45sec wait)
+var micOnTime=0;    // timestamp when mic was activated
+var gotSpeech=false; // received any speech in current session
 var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 var hasSR=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
@@ -130,20 +131,20 @@ function speak(text,cb){
 }
 function speakTTS(text,cb){
   ttsActive=true;
-  speak(text,function(){ttsActive=false;if(cb)cb();});
+  speak(text,function(){ttsActive=false;micOnTime=Date.now();if(cb)cb();});
 }
 
 // === SPEECH RECOGNITION ===
-// Per-registration: tap → start() → listen → record → stop()
-// continuous=true to handle follow-up questions without restart.
-// stop() only on successful registration or manual OFF.
+// Simple flow: tap → start() → wait up to 5sec → user speaks → process → stop
+// onend: if within 5sec of micOnTime and no speech yet, restart ONCE after delay
+// If speech was received, allow more time for follow-up
 
 function createSR(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   srObj=new SR();
   srObj.lang='ja-JP';
   srObj.interimResults=true;
-  srObj.continuous=true;
+  srObj.continuous=false; // single utterance mode
   srObj.onresult=function(e){
     if(ttsActive)return;
     var fin='',interim='';
@@ -152,32 +153,39 @@ function createSR(){
       else interim+=e.results[i][0].transcript;
     }
     document.getElementById('vText').textContent=fin||interim||'...';
-    if(fin){srRestarts=0;procV(fin);}
+    if(fin){
+      gotSpeech=true;
+      micOnTime=Date.now(); // reset timer on speech
+      procV(fin);
+    }
   };
   srObj.onend=function(){
     srRunning=false;
-    // Auto-restart if mic is ON (regardless of vS state)
-    if(vOn&&srRestarts<15){
-      srRestarts++;
+    updMic();
+    if(!vOn)return;
+    // Check if we should keep listening
+    var elapsed=Date.now()-micOnTime;
+    if(elapsed<5000){
+      // Still within timeout → restart after 1 second delay
       setTimeout(function(){
         if(vOn&&!srRunning){
-          try{srObj.start();srRunning=true;updMic();}catch(e){micOff();}
+          try{srObj.start();srRunning=true;updMic();}
+          catch(e){micOff();}
         }
-      },300);
-    }else if(vOn){
+      },1000);
+    }else{
+      // Timeout reached → turn off
+      stopSR();
       micOff();
-      document.getElementById('vStep').textContent='🎤 タップで音声入力';
-      document.getElementById('vText').textContent='タイムアウト';
     }
-    updMic();
   };
   srObj.onerror=function(e){
-    if(e.error==='no-speech'){/* onend handles */}
+    if(e.error==='no-speech'){/* onend will handle */}
     else if(e.error==='not-allowed'){
       srRunning=false;micOK=false;
       micOff();
       document.getElementById('vStep').textContent='マイク許可が必要です';
-      document.getElementById('vText').textContent='設定→Safari→マイク→許可→リロード';
+      document.getElementById('vText').textContent='Safari設定→マイク許可→リロード';
       toast('マイクが拒否されました');updMic();
     }
     else if(e.error==='aborted'){srRunning=false;}
@@ -210,53 +218,43 @@ function updMic(){
   else{d.className='d off';l.textContent='OFF';}
 }
 
-// Turn mic off and reset UI
 function micOff(){
-  vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;
+  vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;gotSpeech=false;
   document.getElementById('vBtn').classList.remove('listening');
   document.getElementById('vStep').textContent='🎤 タップで音声入力';
   document.getElementById('vText').textContent='マイクOFF';
 }
 
 // === VOICE FLOW ===
-// Tap mic → start → listen → parse → record → stop → OFF
-
 function toggleVoice(){
   if(!hasSR){toast('このブラウザは音声認識に対応していません');return;}
 
   if(vOn){
-    // Manual OFF
     if(speechSynthesis)speechSynthesis.cancel();
     stopSR();
     micOff();
     return;
   }
 
-  // Unlock TTS on first gesture
   unlockTTS();
-
-  // Start SR
   if(!startSR())return;
 
-  // Mic ON - waiting for speech (no TTS announcement)
-  vOn=true;vS=0;vGotP=false;vGotT=false;vGotQ=false;srRestarts=0;
+  vOn=true;vS=0;vGotP=false;vGotT=false;vGotQ=false;gotSpeech=false;
+  micOnTime=Date.now();
   document.getElementById('vBtn').classList.add('listening');
-  document.getElementById('vStep').textContent='🎤 聞いています';
-  document.getElementById('vText').textContent='話してください';
+  document.getElementById('vStep').textContent='🎤 マイクON';
+  document.getElementById('vText').textContent='マイクON';
 }
 
-// All 3 found → confirm + record + mic OFF
 function checkComplete(){
   if(vGotP&&vGotT&&vGotQ){
     var s=P[pI].name+'、'+T[tI].name+'、'+qty;
     document.getElementById('vStep').textContent='✓ 登録完了';
     document.getElementById('vText').textContent=s;
-    // Auto-record
     var now=new Date();
     R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty:qty,ts:now.getTime()});
     sR();rRec();
     toast('✓ '+s+' 記録しました');
-    // Confirm TTS then turn off mic
     stopSR();
     vOn=false;vS=0;
     speakTTS(s+'。登録しました',function(){
@@ -274,7 +272,6 @@ function procV(txt){
   txt=txt.trim();
 
   if(vS===0){
-    // === First utterance: parse all 3 ===
     var parts=txt.split(/[、,\s　]+/);
     var foundP=-1,foundT=-1,foundQ=null,usedIdx={};
     for(var i=0;i<parts.length;i++){var m=bm(parts[i],P.map(function(p){return p.name;}));if(m>=0){foundP=m;usedIdx[i]=true;break;}}
@@ -284,14 +281,13 @@ function procV(txt){
     if(foundT<0){for(var ti=0;ti<T.length;ti++){if(txt.indexOf(T[ti].name)>=0){foundT=ti;break;}}}
     if(foundQ===null){foundQ=pNum(txt);}
 
-    if(foundP<0&&foundT<0&&foundQ===null)return; // noise
+    if(foundP<0&&foundT<0&&foundQ===null)return;
 
     if(foundP>=0){pI=foundP;vGotP=true;upd();}
     if(foundT>=0){tI=foundT;vGotT=true;upd();}
     if(foundQ!==null){qty=String(foundQ);vGotQ=true;upd();}
     if(checkComplete())return;
 
-    // Partial → ask for missing
     var ok=[];if(vGotP)ok.push(P[pI].name);if(vGotT)ok.push(T[tI].name);if(vGotQ)ok.push(qty);
     var okMsg=ok.length>0?ok.join('、')+'。':'';
     if(!vGotP){vS=1;document.getElementById('vStep').textContent='収集場所は？';document.getElementById('vText').textContent=okMsg+'場所が不明';speakTTS(okMsg+'収集場所が聞き取れません。収集場所を話してください');}
