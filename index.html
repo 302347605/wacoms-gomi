@@ -90,7 +90,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="start-screen" id="startScr">
-<div class="start-icon">🚛</div><div class="start-title">WACOMS ごみ収集記録</div><div class="start-ver">v1.4.1</div>
+<div class="start-icon">🚛</div><div class="start-title">WACOMS ごみ収集記録</div><div class="start-ver">v1.5.0</div>
 <div class="start-desc">音声入力を使うにはマイクの許可が必要です。<br>ボタンをタップ後、Safariの確認で<b>「許可」</b>を選んでください。</div>
 <button class="start-btn" id="startBtn" onclick="onStart()">🎤 開始（マイク許可）</button>
 <div class="start-status" id="startSt"></div>
@@ -197,177 +197,147 @@ function saveRec(){
 function rRec(){var c=document.getElementById('recScr');if(!R.length){c.innerHTML='<div class="no-rec">記録がありません</div>';return;}c.innerHTML=R.slice(0,100).map(function(r){return '<div class="ri"><div class="rt">'+r.time+'</div><div class="rp">'+r.place+'</div><div class="ry">'+r.type+'</div><div class="rq">'+r.qty+'</div></div>';}).join('');}
 function clearRecs(){if(!confirm('全ての記録を削除しますか？'))return;R=[];sR();rRec();toast('全削除しました');}
 
-// === SPEECH RECOGNITION: Single instance, reused ===
+// === SPEECH RECOGNITION: continuous mode, ONE start, NO stop/start during flow ===
+var srRunning=false;  // is SR currently active?
+var ttsActive=false;  // ignore SR results while TTS plays
+
 function initSR(){
   if(!srOK)return;
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  srObj=new SR();srObj.lang='ja-JP';srObj.interimResults=true;srObj.continuous=false;
+  srObj=new SR();srObj.lang='ja-JP';srObj.interimResults=true;
+  srObj.continuous=true; // KEY: never stop/start, just keep listening
   srObj.onresult=function(e){
+    if(ttsActive)return; // ignore while TTS speaking
     var fin='',interim='';
-    for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)fin+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript;}
-    document.getElementById('vText').textContent=fin||interim||'...';
-    if(fin)procV(fin);
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    if(!ttsActive){document.getElementById('vText').textContent=fin||interim||'...';}
+    if(fin&&!ttsActive)procV(fin);
   };
   srObj.onend=function(){
-    if(vOn&&vS>0&&vS<=10){setTimeout(function(){if(vOn&&vS>0&&vS<=10)doStart();},isIOS?400:150);}
-    else{vOn=false;document.getElementById('vBtn').classList.remove('listening');if(!vS){document.getElementById('vStep').textContent='タップで音声入力';document.getElementById('vText').textContent='待機中';}}
+    srRunning=false;
+    // iOS may stop continuous mode on its own - restart ONCE if still in flow
+    if(vOn&&vS>0){
+      setTimeout(function(){
+        if(vOn&&vS>0&&!srRunning){
+          try{srObj.start();srRunning=true;}catch(e){}
+        }
+      },300);
+    }else{
+      document.getElementById('vBtn').classList.remove('listening');
+      document.getElementById('vStep').textContent='タップで音声入力';
+      document.getElementById('vText').textContent='待機中';
+    }
   };
   srObj.onerror=function(e){
-    if(e.error==='no-speech'&&vOn){setTimeout(function(){if(vOn)doStart();},isIOS?500:200);}
-    else if(e.error==='not-allowed'){vOn=false;vS=0;document.getElementById('vBtn').classList.remove('listening');document.getElementById('vStep').textContent='マイク許可が必要です';toast('マイクが拒否されました。リロードしてください');micOK=false;updMic();}
-    else if(e.error==='aborted'){/* intentional */}
+    if(e.error==='no-speech'){/* onend will handle restart */}
+    else if(e.error==='not-allowed'){
+      vOn=false;vS=0;srRunning=false;
+      document.getElementById('vBtn').classList.remove('listening');
+      document.getElementById('vStep').textContent='マイク許可が必要です';
+      toast('マイクが拒否されました。リロードしてください');micOK=false;updMic();
+    }
+    else if(e.error==='aborted'){srRunning=false;}
   };
 }
-function doStart(){
-  if(!srObj||!vOn||!micOK)return;
-  try{srObj.start();}catch(e){
-    if(e.message&&e.message.indexOf('already started')>=0)return;
-    try{srObj.stop();}catch(x){}
-    setTimeout(function(){if(vOn){try{srObj.start();}catch(x2){}}},300);
-  }
+
+// Speak TTS while keeping SR running (just ignore results via ttsActive flag)
+function speakTTS(text){
+  ttsActive=true;
+  speak(text,function(){ttsActive=false;});
 }
-// Track confirmed items across voice flow
+
+// Track confirmed items
 var vGotP=false,vGotT=false,vGotQ=false;
 
 function toggleVoice(){
   if(!srObj||!micOK){toast('マイク許可が必要です');return;}
-  if(vOn){vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;if(speechSynthesis)speechSynthesis.cancel();try{srObj.stop();}catch(e){}document.getElementById('vBtn').classList.remove('listening');document.getElementById('vStep').textContent='タップで音声入力';document.getElementById('vText').textContent='待機中';return;}
+  if(vOn){
+    // === STOP: only place we call stop() ===
+    vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;
+    if(speechSynthesis)speechSynthesis.cancel();
+    try{srObj.stop();}catch(e){}srRunning=false;
+    document.getElementById('vBtn').classList.remove('listening');
+    document.getElementById('vStep').textContent='タップで音声入力';
+    document.getElementById('vText').textContent='待機中';
+    return;
+  }
+  // === START: only place we call start() ===
   vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;
   document.getElementById('vBtn').classList.add('listening');
   document.getElementById('vStep').textContent='場所、種別、数量をまとめて話してください';
   document.getElementById('vText').textContent='聞いています...';
-  speak('場所、種別、数量をまとめて話してください',function(){if(vOn)doStart();});
+  // Start SR first, then speak prompt (SR stays running during TTS)
+  try{srObj.start();srRunning=true;}catch(e){
+    if(e.message&&e.message.indexOf('already started')>=0){srRunning=true;}
+  }
+  speakTTS('場所、種別、数量をまとめて話してください');
 }
 
-// Check all 3 confirmed → complete, otherwise ask for next missing item
 function checkComplete(){
   if(vGotP&&vGotT&&vGotQ){
-    vS=0;vOn=false;try{srObj.stop();}catch(e){}
+    // === COMPLETE: stop SR ===
+    vS=0;vOn=false;
+    try{srObj.stop();}catch(e){}srRunning=false;
     document.getElementById('vBtn').classList.remove('listening');
     document.getElementById('vStep').textContent='✓ 完了';
     var s=P[pI].name+'、'+T[tI].name+'、'+qty;
     document.getElementById('vText').textContent=s;
-    speak(s+'。記録ボタンを押してください');
+    speakTTS(s+'。記録ボタンを押してください');
     return true;
   }
   return false;
 }
 
-function askNextMissing(){
-  if(!vGotP){
-    vS=1;
-    document.getElementById('vStep').textContent='収集場所を話してください';
-    document.getElementById('vText').textContent='聞いています...';
-    speak('収集場所が聞き取れません。収集場所を話してください',function(){if(vOn)doStart();});
-  }else if(!vGotT){
-    vS=2;
-    document.getElementById('vStep').textContent='ごみ種別を話してください';
-    document.getElementById('vText').textContent='聞いています...';
-    speak('ごみ種別が聞き取れません。ごみ種別を話してください',function(){if(vOn)doStart();});
-  }else if(!vGotQ){
-    vS=3;
-    document.getElementById('vStep').textContent='数量を話してください';
-    document.getElementById('vText').textContent='聞いています...';
-    speak('数量が聞き取れません。数量を話してください',function(){if(vOn)doStart();});
-  }
-}
-
 function procV(txt){
   txt=txt.trim();
   if(vS===10){
-    // === ONE-SHOT MODE ===
     var parts=txt.split(/[、,\s　]+/);
     var foundP=-1,foundT=-1,foundQ=null,usedIdx={};
     for(var i=0;i<parts.length;i++){var m=bm(parts[i],P.map(function(p){return p.name;}));if(m>=0){foundP=m;usedIdx[i]=true;break;}}
     for(var j=0;j<parts.length;j++){if(usedIdx[j])continue;var m2=bm(parts[j],T.map(function(t){return t.name;}));if(m2>=0){foundT=m2;usedIdx[j]=true;break;}}
     for(var k=0;k<parts.length;k++){if(usedIdx[k])continue;var n=pNum(parts[k]);if(n!==null){foundQ=n;usedIdx[k]=true;break;}}
-    // Fallback: try full text matching
     if(foundP<0){for(var pi=0;pi<P.length;pi++){if(txt.indexOf(P[pi].name)>=0){foundP=pi;break;}}}
     if(foundT<0){for(var ti=0;ti<T.length;ti++){if(txt.indexOf(T[ti].name)>=0){foundT=ti;break;}}}
     if(foundQ===null){foundQ=pNum(txt);}
-    // Set confirmed items
     if(foundP>=0){pI=foundP;vGotP=true;upd();}
     if(foundT>=0){tI=foundT;vGotT=true;upd();}
     if(foundQ!==null){qty=String(foundQ);vGotQ=true;upd();}
-    // All found?
     if(checkComplete())return;
-    // Build status and ask for missing
-    var confirmed=[];
-    if(vGotP)confirmed.push(P[pI].name);
-    if(vGotT)confirmed.push(T[tI].name);
-    if(vGotQ)confirmed.push(qty);
-    var status=confirmed.length>0?confirmed.join('、')+'は認識OK。':'';
-    document.getElementById('vText').textContent=status;
-    // Stop recognition, then ask for next missing with clear message
-    try{srObj.stop();}catch(e){}
-    if(!vGotP){
-      vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
-      speak(status+'収集場所が聞き取れません。収集場所を話してください',function(){if(vOn)doStart();});
-    }else if(!vGotT){
-      vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
-      speak(status+'ごみ種別が聞き取れません。ごみ種別を話してください',function(){if(vOn)doStart();});
-    }else{
-      vS=3;document.getElementById('vStep').textContent='数量を話してください';
-      speak(status+'数量が聞き取れません。数量を話してください',function(){if(vOn)doStart();});
-    }
+    var ok=[];if(vGotP)ok.push(P[pI].name);if(vGotT)ok.push(T[tI].name);if(vGotQ)ok.push(qty);
+    var okMsg=ok.length>0?ok.join('、')+'は認識OK。':'';
+    if(!vGotP){vS=1;document.getElementById('vStep').textContent='収集場所を話してください';document.getElementById('vText').textContent=okMsg+'場所が不明';speakTTS(okMsg+'収集場所が聞き取れません。収集場所を話してください');}
+    else if(!vGotT){vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';document.getElementById('vText').textContent=okMsg+'種別が不明';speakTTS(okMsg+'ごみ種別が聞き取れません。ごみ種別を話してください');}
+    else{vS=3;document.getElementById('vStep').textContent='数量を話してください';document.getElementById('vText').textContent=okMsg+'数量が不明';speakTTS(okMsg+'数量が聞き取れません。数量を話してください');}
   }
   else if(vS===1){
     var m=bm(txt,P.map(function(p){return p.name;}));
     if(m>=0){
-      pI=m;vGotP=true;upd();
-      document.getElementById('vText').textContent='場所:'+P[m].name+' ✓';
-      try{srObj.stop();}catch(e){}
+      pI=m;vGotP=true;upd();document.getElementById('vText').textContent='場所:'+P[m].name+' ✓';
       if(checkComplete())return;
-      // Ask for next missing
-      if(!vGotT){
-        vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
-        speak(P[m].name+'。次に、ごみ種別を話してください',function(){if(vOn)doStart();});
-      }else if(!vGotQ){
-        vS=3;document.getElementById('vStep').textContent='数量を話してください';
-        speak(P[m].name+'。次に、数量を話してください',function(){if(vOn)doStart();});
-      }
-    }else{
-      document.getElementById('vText').textContent='"'+txt+'" → 収集場所が一致しません';
-      speak('収集場所が聞き取れません。もう一度、収集場所を話してください');
-    }
+      if(!vGotT){vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';speakTTS(P[m].name+'。次に、ごみ種別を話してください');}
+      else{vS=3;document.getElementById('vStep').textContent='数量を話してください';speakTTS(P[m].name+'。次に、数量を話してください');}
+    }else{document.getElementById('vText').textContent='"'+txt+'" → 収集場所が一致しません';speakTTS('収集場所が聞き取れません。もう一度、収集場所を話してください');}
   }
   else if(vS===2){
     var m2=bm(txt,T.map(function(t){return t.name;}));
     if(m2>=0){
-      tI=m2;vGotT=true;upd();
-      document.getElementById('vText').textContent='種別:'+T[m2].name+' ✓';
-      try{srObj.stop();}catch(e){}
+      tI=m2;vGotT=true;upd();document.getElementById('vText').textContent='種別:'+T[m2].name+' ✓';
       if(checkComplete())return;
-      if(!vGotQ){
-        vS=3;document.getElementById('vStep').textContent='数量を話してください';
-        speak(T[m2].name+'。次に、数量を話してください',function(){if(vOn)doStart();});
-      }else if(!vGotP){
-        vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
-        speak(T[m2].name+'。次に、収集場所を話してください',function(){if(vOn)doStart();});
-      }
-    }else{
-      document.getElementById('vText').textContent='"'+txt+'" → ごみ種別が一致しません';
-      speak('ごみ種別が聞き取れません。もう一度、ごみ種別を話してください');
-    }
+      if(!vGotQ){vS=3;document.getElementById('vStep').textContent='数量を話してください';speakTTS(T[m2].name+'。次に、数量を話してください');}
+      else{vS=1;document.getElementById('vStep').textContent='収集場所を話してください';speakTTS(T[m2].name+'。次に、収集場所を話してください');}
+    }else{document.getElementById('vText').textContent='"'+txt+'" → ごみ種別が一致しません';speakTTS('ごみ種別が聞き取れません。もう一度、ごみ種別を話してください');}
   }
   else if(vS===3){
     var n=pNum(txt);
     if(n!==null){
-      qty=String(n);vGotQ=true;upd();
-      document.getElementById('vText').textContent='数量:'+qty+' ✓';
-      try{srObj.stop();}catch(e){}
+      qty=String(n);vGotQ=true;upd();document.getElementById('vText').textContent='数量:'+qty+' ✓';
       if(checkComplete())return;
-      if(!vGotP){
-        vS=1;document.getElementById('vStep').textContent='収集場所を話してください';
-        speak('数量'+n+'。次に、収集場所を話してください',function(){if(vOn)doStart();});
-      }else if(!vGotT){
-        vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';
-        speak('数量'+n+'。次に、ごみ種別を話してください',function(){if(vOn)doStart();});
-      }
-    }else{
-      document.getElementById('vText').textContent='"'+txt+'" → 数量が聞き取れません';
-      speak('数量が聞き取れません。もう一度、数量を話してください');
-    }
+      if(!vGotP){vS=1;document.getElementById('vStep').textContent='収集場所を話してください';speakTTS('数量'+n+'。次に、収集場所を話してください');}
+      else{vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';speakTTS('数量'+n+'。次に、ごみ種別を話してください');}
+    }else{document.getElementById('vText').textContent='"'+txt+'" → 数量が聞き取れません';speakTTS('数量が聞き取れません。もう一度、数量を話してください');}
   }
 }
 function bm(inp,list){var s=inp.toLowerCase().replace(/\s/g,'');var i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'')===s;});if(i>=0)return i;i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'').indexOf(s)>=0;});if(i>=0)return i;i=list.findIndex(function(x){return s.indexOf(x.toLowerCase().replace(/\s/g,''))>=0;});return i;}
