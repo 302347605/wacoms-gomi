@@ -10,16 +10,6 @@
 :root{--primary:#2E7D32;--primary-light:#4CAF50;--danger:#C62828;--bg:#E8E8E0;--text:#212121;--text-sec:#616161;--border:#BDBDBD;--header-bg:#37474F;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);font-size:14px;overflow-x:hidden;min-height:100vh;min-height:100dvh;}
-.start-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;}
-.start-screen.hidden{display:none;}
-.start-icon{font-size:56px;margin-bottom:12px;}
-.start-title{font-size:20px;font-weight:800;margin-bottom:6px;}
-.start-ver{font-size:11px;color:var(--text-sec);margin-bottom:16px;}
-.start-desc{font-size:13px;color:var(--text-sec);margin-bottom:24px;line-height:1.6;max-width:280px;}
-.start-btn{padding:16px 48px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(46,125,50,0.3);transition:all 0.2s;}
-.start-btn:active{transform:scale(0.96);}
-.start-status{margin-top:14px;font-size:12px;color:var(--text-sec);min-height:40px;max-width:300px;line-height:1.5;}
-.start-skip{margin-top:10px;font-size:12px;color:var(--text-sec);background:none;border:none;text-decoration:underline;cursor:pointer;}
 .header{background:var(--header-bg);color:#fff;padding:4px 12px;display:flex;align-items:center;justify-content:space-between;height:36px;position:sticky;top:0;z-index:100;}
 .header-title{font-size:14px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;}
 .header-right{display:flex;align-items:center;gap:12px;}
@@ -30,7 +20,6 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .voice-bar{display:flex;align-items:center;gap:8px;margin-left:12px;}
 .voice-btn{width:28px;height:28px;border-radius:50%;border:none;background:var(--primary-light);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
 .voice-btn.listening{background:var(--danger);animation:pulse 1.2s infinite;}
-.voice-btn.disabled{background:#999;pointer-events:none;opacity:0.6;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(198,40,40,0.4);}50%{box-shadow:0 0 0 8px rgba(198,40,40,0);}}
 .voice-info{font-size:10px;line-height:1.3;max-width:180px;}.voice-step{opacity:0.7;}.voice-text{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .app-body{display:flex;flex-direction:column;height:calc(100vh - 36px);height:calc(100dvh - 36px);}
@@ -48,58 +37,42 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 .rec-btn:active{background:var(--primary);color:#fff;}
 .rec-area{flex:1;display:flex;flex-direction:column;min-height:0;border-top:2px solid var(--border);background:#F5F5F0;}
 .rec-hdr{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;background:#E0E0D8;flex-shrink:0;}
-.rec-hdr-btns{display:flex;gap:6px;}.rec-hdr-btns button{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:#fff;cursor:pointer;}.rec-hdr-btns .del{color:var(--danger);border-color:var(--danger);}
+.rec-hdr-btns{display:flex;gap:6px;}.rec-hdr-btns button{font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;}.rec-hdr-btns .del{color:var(--danger);border-color:var(--danger);}
 .rec-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.ri{display:grid;grid-template-columns:56px 1fr 1fr 44px;padding:5px 10px;border-bottom:1px solid #E0E0D8;font-size:12px;align-items:center;}.ri:nth-child(even){background:rgba(255,255,255,0.5);}
-.rt{color:var(--text-sec);font-size:11px;}.rp{font-weight:600;}.ry{color:var(--text-sec);}.rq{text-align:right;font-weight:700;color:var(--primary);}.no-rec{padding:16px;text-align:center;color:#999;font-size:12px;}
-.toolbar{display:flex;gap:6px;padding:4px 10px;background:#E0E0D8;border-top:1px solid var(--border);flex-shrink:0;}
-.tb{flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:600;text-align:center;cursor:pointer;}.tb:active{background:#E0E0E0;}.tb span{font-size:14px;margin-right:2px;}
-.np-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:flex-end;padding:10px;}.np-ovl.show{display:flex;}
-.np-pan{background:#D8D8D0;border-radius:10px;padding:8px;width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:sIn .2s ease-out;}
-@keyframes sIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
-.np-disp{background:#fff;border-radius:6px;padding:8px 12px;font-size:28px;font-weight:700;text-align:right;margin-bottom:6px;min-height:44px;}
-.np-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
-.nk{height:40px;border:none;border-radius:6px;background:#fff;font-size:18px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.1);}.nk:active{background:#E0E0E0;}
-.nk.fn{background:#B0BEC5;color:#fff;font-size:11px;font-weight:700;}.nk.enter{background:var(--primary);color:#fff;grid-row:span 2;font-size:13px;font-weight:700;}
-.set-ovl{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column;}.set-ovl.show{display:flex;}
-.set-hdr{background:var(--header-bg);color:#fff;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;height:36px;}.set-hdr h2{font-size:14px;}.set-x{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;}
-.set-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;}.set-tabs{display:flex;gap:6px;margin-bottom:10px;}
-.set-tab{flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-weight:700;text-align:center;cursor:pointer;}.set-tab.active{border-color:var(--primary);background:#E8F5E9;color:var(--primary);}
-.ml{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
-.mi{background:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px;}
-.mi-ph{width:40px;height:40px;border-radius:6px;background:#E0E0E0;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#999;}.mi-ph img{width:100%;height:100%;object-fit:cover;}
-.mi-i{flex:1;min-width:0;}.mi-n{font-weight:700;font-size:13px;}.mi-s{font-size:10px;color:var(--text-sec);}
-.mi-a{display:flex;gap:4px;}.mi-a button{width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;cursor:pointer;}.mi-a .del{color:var(--danger);border-color:var(--danger);}
-.add-btn{width:100%;padding:10px;border:2px dashed var(--border);border-radius:8px;background:transparent;font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;}
-.frm-ovl{display:none;position:fixed;inset:0;background:var(--bg);z-index:400;flex-direction:column;}.frm-ovl.show{display:flex;}
-.frm-body{flex:1;overflow-y:auto;padding:10px;}.fg{margin-bottom:12px;}.fg label{display:block;font-size:11px;font-weight:700;color:var(--text-sec);margin-bottom:4px;}
-.fg input{width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:6px;font-size:15px;background:#fff;appearance:none;}.fg input:focus{outline:none;border-color:var(--primary);}
-.pp{width:100px;height:100px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;cursor:pointer;overflow:hidden;background:#fff;font-size:11px;color:var(--text-sec);}.pp span{font-size:28px;}.pp img{width:100%;height:100%;object-fit:cover;}
-.ph-btns{display:flex;gap:6px;margin-top:6px;}
-.ph-btn{flex:1;padding:8px 4px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:600;text-align:center;cursor:pointer;}
-.ph-btn:active{background:#E0E0E0;}.ph-btn span{font-size:16px;display:block;margin-bottom:2px;}
-.frm-sv{width:100%;padding:12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;cursor:pointer;}
-.exp-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:250;align-items:center;justify-content:center;padding:16px;}.exp-ovl.show{display:flex;}
-.exp-box{background:#fff;border-radius:12px;width:100%;max-width:320px;padding:16px;}.exp-box h3{font-size:14px;margin-bottom:8px;text-align:center;}
-.exp-box textarea{width:100%;height:160px;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:monospace;margin-bottom:8px;}
-.exp-btns{display:flex;gap:6px;}.exp-btns button{flex:1;padding:8px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;}.exp-btns .cp{background:var(--primary);color:#fff;}.exp-btns .cl{background:#E0E0E0;}
-.toast{position:fixed;top:44px;left:50%;transform:translateX(-50%) translateY(-16px);background:rgba(0,0,0,0.85);color:#fff;padding:6px 16px;border-radius:16px;font-size:13px;font-weight:600;z-index:500;opacity:0;transition:all 0.3s;pointer-events:none;}.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-@media(orientation:portrait){
+.no-rec{text-align:center;color:#999;padding:20px;font-size:13px;}
+.ri{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+.rt{font-size:10px;color:var(--text-sec);min-width:40px;}.rp{flex:1;font-weight:600;}.ry{color:var(--text-sec);min-width:60px;}.rq{font-weight:700;min-width:30px;text-align:right;}
+.toolbar{display:flex;border-top:2px solid var(--border);background:#E0E0D8;flex-shrink:0;}
+.tb{flex:1;padding:8px;border:none;background:transparent;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;}.tb:active{background:#D0D0C8;}.tb+.tb{border-left:1px solid var(--border);}
+.np-ovl{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}.np-ovl.show{opacity:1;pointer-events:auto;}
+.np-pan{background:#fff;border-radius:12px;padding:12px;width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.2);}
+.np-disp{background:#F5F5F0;border:2px solid var(--border);border-radius:8px;padding:10px;font-size:32px;font-weight:700;text-align:right;margin-bottom:8px;min-height:48px;}
+.np-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.nk{height:44px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:20px;font-weight:700;cursor:pointer;}.nk:active{background:#E0E0E0;}.nk.fn{font-size:12px;background:#F0F0E8;}.nk.enter{grid-row:span 2;background:var(--primary);color:#fff;border-color:var(--primary);font-size:14px;font-weight:800;}
+.set-ovl{position:fixed;inset:0;background:#fff;z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.3s;}.set-ovl.show{transform:none;}
+.set-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--header-bg);color:#fff;}.set-hdr h2{font-size:16px;}.set-x{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px 8px;}
+.set-body{flex:1;overflow-y:auto;padding:12px;}.set-tabs{display:flex;gap:8px;margin-bottom:12px;}.set-tab{flex:1;padding:8px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;}.set-tab.active{border-color:var(--primary);background:#E8F5E9;color:var(--primary);}
+.ml{display:flex;flex-direction:column;gap:6px;}.mi{display:flex;align-items:center;gap:8px;padding:8px;background:#F5F5F0;border-radius:8px;border:1px solid var(--border);}
+.mi-ph{width:48px;height:48px;border-radius:6px;background:#D0D0C8;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}.mi-ph img{width:100%;height:100%;object-fit:cover;}
+.mi-i{flex:1;min-width:0;}.mi-n{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.mi-s{font-size:11px;color:var(--text-sec);}
+.mi-a{display:flex;gap:4px;}.mi-a button{padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:14px;}.mi-a .del{color:var(--danger);border-color:var(--danger);}
+.add-btn{width:100%;padding:10px;border:2px dashed var(--border);border-radius:8px;background:transparent;font-size:16px;color:var(--primary);cursor:pointer;margin-top:12px;font-weight:700;}
+.frm-ovl{position:fixed;inset:0;background:#fff;z-index:400;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.3s;}.frm-ovl.show{transform:none;}
+.frm-body{flex:1;overflow-y:auto;padding:16px;}.fg{margin-bottom:16px;}.fg label{display:block;font-size:12px;font-weight:700;color:var(--text-sec);margin-bottom:4px;}.fg input{width:100%;padding:10px;border:2px solid var(--border);border-radius:6px;font-size:16px;}
+.pp{width:100%;height:100px;border:2px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#F5F5F0;cursor:pointer;overflow:hidden;font-size:12px;color:#999;}.pp span{font-size:28px;}.pp img{width:100%;height:100%;object-fit:cover;}
+.ph-btns{display:flex;gap:8px;margin-top:8px;}.ph-btn{flex:1;padding:10px;border:2px solid var(--primary);border-radius:8px;background:#E8F5E9;cursor:pointer;font-size:13px;font-weight:700;color:var(--primary);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;}.ph-btn span{font-size:20px;}.ph-btn:active{background:var(--primary);color:#fff;}
+.frm-sv{width:100%;padding:12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px;}
+.exp-ovl{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}.exp-ovl.show{opacity:1;pointer-events:auto;}.exp-box{background:#fff;border-radius:12px;padding:16px;width:90%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;}.exp-box h3{margin-bottom:8px;}.exp-box textarea{flex:1;min-height:200px;border:1px solid var(--border);border-radius:6px;padding:8px;font-family:monospace;font-size:11px;resize:none;}.exp-btns{display:flex;gap:8px;margin-top:8px;}.exp-btns button{flex:1;padding:10px;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;}.cl{background:#E0E0E0;}.cp{background:var(--primary);color:#fff;}
+.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:all 0.3s;z-index:9999;}.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media (orientation:portrait){
 .input-area{flex-wrap:wrap;justify-content:center;}.photo-box{width:100%;height:80px;}.input-col,.qty-col{flex:1 1 30%;min-width:80px;}.iv{max-width:100%;}.iv.qty{max-width:100%;}.input-col .arr{max-width:100%;}.rec-col{width:100%;padding:4px 0;}.rec-btn{width:100%;padding:12px;font-size:18px;background:var(--primary);color:#fff;border-radius:8px;}.np-ovl{align-items:flex-end;justify-content:center;}.np-pan{width:100%;max-width:340px;border-radius:12px 12px 0 0;}}
 </style>
 </head>
 <body>
-<div class="start-screen" id="startScr">
-<div class="start-icon">🚛</div><div class="start-title">WACOMS ごみ収集記録</div><div class="start-ver">v1.5.0</div>
-<div class="start-desc">音声入力を使うにはマイクの許可が必要です。<br>ボタンをタップ後、Safariの確認で<b>「許可」</b>を選んでください。</div>
-<button class="start-btn" id="startBtn" onclick="onStart()">🎤 開始（マイク許可）</button>
-<div class="start-status" id="startSt"></div>
-<button class="start-skip" onclick="enterApp(false)">音声なしで使う</button>
-</div>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録</div>
-<div class="voice-bar"><button class="voice-btn disabled" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
-<div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><span style="font-size:15px;opacity:0.8">🎧</span><span>接続中</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.6.0</span></div>
+<div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
+<div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
 <div class="app-body">
 <div class="input-area">
@@ -121,40 +94,28 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 var P=[],T=[],R=[],pI=0,tI=0,qty='0',numV='';
 var cTab='place',eI=-1,ePh=null;
 var vOn=false,vS=0,srObj=null,gLa=null,gLo=null;
-var micOK=false,ttsOK=false,srOK=false;
+var micOK=false,ttsOK=false;
+var srRunning=false,ttsActive=false;
+var vGotP=false,vGotT=false,vGotQ=false;
 var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+var hasSR=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
-function onStart(){
-  var btn=document.getElementById('startBtn'),st=document.getElementById('startSt');
-  btn.disabled=true;st.textContent='音声認識の許可を要求中...';
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){st.textContent='このブラウザは音声認識非対応です';btn.disabled=false;return;}
-  var testRec=new SR();testRec.lang='ja-JP';testRec.interimResults=false;testRec.continuous=false;
-  var granted=false;
-  testRec.onstart=function(){granted=true;micOK=true;srOK=true;st.textContent='✓ マイク許可OK！';try{testRec.stop();}catch(e){}};
-  testRec.onend=function(){if(granted){unlockTTS();setTimeout(function(){enterApp(true);},400);}};
-  testRec.onerror=function(e){
-    btn.disabled=false;
-    if(e.error==='not-allowed'){st.innerHTML='⚠️ マイクが拒否されました。<br><br>Safari「ぁあ」→ Webサイトの設定 → マイク → 許可 → リロード';btn.textContent='再試行';}
-    else if(e.error==='no-speech'||e.error==='aborted'){granted=true;micOK=true;srOK=true;st.textContent='✓ マイク許可OK！';unlockTTS();setTimeout(function(){enterApp(true);},400);}
-    else{st.textContent='エラー: '+e.error;btn.textContent='再試行';}
-  };
-  try{testRec.start();}catch(e){st.textContent='エラー: '+e.message;btn.disabled=false;}
-}
+// === APP INIT: immediate, no start screen ===
+window.onload=function(){
+  ld();
+  if(!P.length){P=[{name:'ユニクロ',lat:35.6812,lng:139.7671,photo:null},{name:'コンビニ前',lat:35.6815,lng:139.7675,photo:null},{name:'公園入口',lat:35.6808,lng:139.7668,photo:null},{name:'駅前',lat:35.682,lng:139.768,photo:null}];sP();}
+  if(!T.length){T=[{name:'燃えるごみ'},{name:'リサイクル'},{name:'不燃ごみ'},{name:'ペットボトル'},{name:'缶・ビン'}];sT();}
+  upd();rRec();initGPS();
+  if(!hasSR){document.getElementById('vStep').textContent='音声非対応';}
+};
+
+// === TTS ===
 function unlockTTS(){
-  if(!window.speechSynthesis)return;ttsOK=true;
+  if(ttsOK)return;
+  if(!window.speechSynthesis)return;
+  ttsOK=true;
   try{var u=new SpeechSynthesisUtterance('');u.volume=0;u.lang='ja-JP';speechSynthesis.speak(u);speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices();};}catch(e){}
   try{var ac=new(window.AudioContext||window.webkitAudioContext)();var b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(0);if(ac.state==='suspended')ac.resume();}catch(e){}
-}
-function enterApp(withMic){
-  document.getElementById('startScr').classList.add('hidden');
-  if(!withMic){micOK=false;srOK=false;}
-  updMic();initApp();
-}
-function updMic(){
-  var d=document.getElementById('micD'),l=document.getElementById('micL'),b=document.getElementById('vBtn');
-  if(micOK&&srOK){d.className='d on';l.textContent='ON';b.classList.remove('disabled');}
-  else{d.className='d off';l.textContent='OFF';b.classList.add('disabled');}
 }
 function speak(text,cb){
   if(!ttsOK||!speechSynthesis){if(cb)setTimeout(cb,100);return;}
@@ -166,123 +127,115 @@ function speak(text,cb){
   if(isIOS){var iv=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(iv);fin();return;}speechSynthesis.pause();speechSynthesis.resume();},4000);u.onend=function(){clearInterval(iv);fin();};u.onerror=function(){clearInterval(iv);fin();};}
   setTimeout(fin,Math.max(3000,text.length*200));
 }
-function initApp(){
-  ld();
-  if(!P.length){P=[{name:'ユニクロ',lat:35.6812,lng:139.7671,photo:null},{name:'コンビニ前',lat:35.6815,lng:139.7675,photo:null},{name:'公園入口',lat:35.6808,lng:139.7668,photo:null},{name:'駅前',lat:35.682,lng:139.768,photo:null}];sP();}
-  if(!T.length){T=[{name:'燃えるごみ'},{name:'リサイクル'},{name:'不燃ごみ'},{name:'ペットボトル'},{name:'缶・ビン'}];sT();}
-  upd();rRec();initGPS();initSR();
-}
-function ld(){try{P=JSON.parse(localStorage.getItem('wc_p')||'[]');T=JSON.parse(localStorage.getItem('wc_t')||'[]');R=JSON.parse(localStorage.getItem('wc_r')||'[]');}catch(e){}}
-function sP(){localStorage.setItem('wc_p',JSON.stringify(P));}
-function sT(){localStorage.setItem('wc_t',JSON.stringify(T));}
-function sR(){localStorage.setItem('wc_r',JSON.stringify(R));}
-function initGPS(){if(!navigator.geolocation)return;navigator.geolocation.watchPosition(function(p){gLa=p.coords.latitude;gLo=p.coords.longitude;sortP();upd();},function(){},{enableHighAccuracy:true,maximumAge:10000});}
-function sortP(){if(gLa===null||!P.length)return;var cn=P[pI]?P[pI].name:'';P.sort(function(a,b){return dst(gLa,gLo,a.lat,a.lng)-dst(gLa,gLo,b.lat,b.lng);});sP();var ni=P.findIndex(function(p){return p.name===cn;});pI=ni>=0?ni:0;}
-function dst(a,b,c,d){if(!c||!d)return Infinity;var R2=6371000,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;var x=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)*Math.sin(dG/2);return R2*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-function upd(){
-  if(P.length){pI=Math.max(0,Math.min(pI,P.length-1));document.getElementById('pVal').textContent=P[pI].name;var ph=P[pI].photo;document.getElementById('pBox').innerHTML=ph?'<img src="'+ph+'">':'<div class="no-photo"><span>📷</span>写真なし</div>';}
-  else{document.getElementById('pVal').textContent='---';document.getElementById('pBox').innerHTML='<div class="no-photo"><span>📷</span>写真なし</div>';}
-  if(T.length){tI=Math.max(0,Math.min(tI,T.length-1));document.getElementById('tVal').textContent=T[tI].name;}else document.getElementById('tVal').textContent='---';
-  document.getElementById('qVal').textContent=qty;
-}
-function cyP(d){if(!P.length)return;pI=(pI+d+P.length)%P.length;upd();}
-function cyT(d){if(!T.length)return;tI=(tI+d+T.length)%T.length;upd();}
-function openNP(){numV=qty==='0'?'':qty;document.getElementById('npD').textContent=numV||'0';document.getElementById('npOvl').classList.add('show');}
-function nk(k){if(k==='C')numV='';else if(k==='B')numV=numV.slice(0,-1);else if(k==='E'){qty=numV||'0';document.getElementById('npOvl').classList.remove('show');upd();return;}else{if(k==='.'&&numV.includes('.'))return;if(k==='-'&&numV.length>0)return;numV+=k;}document.getElementById('npD').textContent=numV||'0';}
-function saveRec(){
-  if(!P.length){toast('収集場所を設定してください');return;}if(!T.length){toast('ごみ種別を設定してください');return;}
-  var now=new Date();R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty:qty,ts:now.getTime()});
-  sR();rRec();speak('記録しました');toast('✓ 記録しました');qty='0';upd();
-}
-function rRec(){var c=document.getElementById('recScr');if(!R.length){c.innerHTML='<div class="no-rec">記録がありません</div>';return;}c.innerHTML=R.slice(0,100).map(function(r){return '<div class="ri"><div class="rt">'+r.time+'</div><div class="rp">'+r.place+'</div><div class="ry">'+r.type+'</div><div class="rq">'+r.qty+'</div></div>';}).join('');}
-function clearRecs(){if(!confirm('全ての記録を削除しますか？'))return;R=[];sR();rRec();toast('全削除しました');}
-
-// === SPEECH RECOGNITION: continuous mode, ONE start, NO stop/start during flow ===
-var srRunning=false;  // is SR currently active?
-var ttsActive=false;  // ignore SR results while TTS plays
-
-function initSR(){
-  if(!srOK)return;
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  srObj=new SR();srObj.lang='ja-JP';srObj.interimResults=true;
-  srObj.continuous=true; // KEY: never stop/start, just keep listening
-  srObj.onresult=function(e){
-    if(ttsActive)return; // ignore while TTS speaking
-    var fin='',interim='';
-    for(var i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    if(!ttsActive){document.getElementById('vText').textContent=fin||interim||'...';}
-    if(fin&&!ttsActive)procV(fin);
-  };
-  srObj.onend=function(){
-    srRunning=false;
-    // iOS may stop continuous mode on its own - restart ONCE if still in flow
-    if(vOn&&vS>0){
-      setTimeout(function(){
-        if(vOn&&vS>0&&!srRunning){
-          try{srObj.start();srRunning=true;}catch(e){}
-        }
-      },300);
-    }else{
-      document.getElementById('vBtn').classList.remove('listening');
-      document.getElementById('vStep').textContent='タップで音声入力';
-      document.getElementById('vText').textContent='待機中';
-    }
-  };
-  srObj.onerror=function(e){
-    if(e.error==='no-speech'){/* onend will handle restart */}
-    else if(e.error==='not-allowed'){
-      vOn=false;vS=0;srRunning=false;
-      document.getElementById('vBtn').classList.remove('listening');
-      document.getElementById('vStep').textContent='マイク許可が必要です';
-      toast('マイクが拒否されました。リロードしてください');micOK=false;updMic();
-    }
-    else if(e.error==='aborted'){srRunning=false;}
-  };
-}
-
-// Speak TTS while keeping SR running (just ignore results via ttsActive flag)
 function speakTTS(text){
   ttsActive=true;
   speak(text,function(){ttsActive=false;});
 }
 
-// Track confirmed items
-var vGotP=false,vGotT=false,vGotQ=false;
+// === SPEECH RECOGNITION ===
+// KEY DESIGN: start() is called ONCE on first mic tap.
+// Never call stop(). Never auto-restart. No banner flicker.
+// If iOS force-ends the session, user must tap mic again (user gesture → single start).
 
+function createSR(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  srObj=new SR();
+  srObj.lang='ja-JP';
+  srObj.interimResults=true;
+  srObj.continuous=true;
+  srObj.onresult=function(e){
+    if(ttsActive||!vOn)return; // ignore during TTS or when voice flow is off
+    var fin='',interim='';
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    document.getElementById('vText').textContent=fin||interim||'...';
+    if(fin)procV(fin);
+  };
+  srObj.onend=function(){
+    // iOS forced end. Do NOT auto-restart (causes banner loop).
+    srRunning=false;
+    updMic();
+    if(vOn){
+      // Was in voice flow → notify user
+      vOn=false;vS=0;
+      document.getElementById('vBtn').classList.remove('listening');
+      document.getElementById('vStep').textContent='🎤 タップで再開';
+      document.getElementById('vText').textContent='音声が切れました';
+    }
+  };
+  srObj.onerror=function(e){
+    if(e.error==='no-speech'){/* normal, keep going */}
+    else if(e.error==='not-allowed'){
+      srRunning=false;micOK=false;vOn=false;vS=0;
+      document.getElementById('vBtn').classList.remove('listening');
+      document.getElementById('vStep').textContent='マイク許可が必要です';
+      document.getElementById('vText').textContent='設定→Safari→マイク→許可→リロード';
+      toast('マイクが拒否されました');updMic();
+    }
+    else if(e.error==='aborted'){srRunning=false;}
+  };
+}
+
+// Start SR - only called from user tap gesture
+function startSR(){
+  if(!srObj)createSR();
+  if(srRunning)return true;
+  try{
+    srObj.start();
+    srRunning=true;micOK=true;
+    updMic();
+    return true;
+  }catch(e){
+    if(e.message&&e.message.indexOf('already started')>=0){srRunning=true;return true;}
+    toast('音声認識の開始に失敗');
+    return false;
+  }
+}
+
+function updMic(){
+  var d=document.getElementById('micD'),l=document.getElementById('micL');
+  if(micOK&&srRunning){d.className='d on';l.textContent='ON';}
+  else{d.className='d off';l.textContent='OFF';}
+}
+
+// === VOICE FLOW ===
 function toggleVoice(){
-  if(!srObj||!micOK){toast('マイク許可が必要です');return;}
+  if(!hasSR){toast('このブラウザは音声認識に対応していません');return;}
+
   if(vOn){
-    // === STOP: only place we call stop() ===
+    // Turn OFF voice flow (SR stays running - no stop!)
     vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;
     if(speechSynthesis)speechSynthesis.cancel();
-    try{srObj.stop();}catch(e){}srRunning=false;
     document.getElementById('vBtn').classList.remove('listening');
-    document.getElementById('vStep').textContent='タップで音声入力';
+    document.getElementById('vStep').textContent='🎤 タップで音声入力';
     document.getElementById('vText').textContent='待機中';
     return;
   }
-  // === START: only place we call start() ===
+
+  // Unlock TTS on first user gesture
+  unlockTTS();
+
+  // If SR not running, start it (user gesture = safe to call start)
+  if(!srRunning){
+    if(!startSR())return;
+  }
+
+  // Begin voice flow
   vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;
   document.getElementById('vBtn').classList.add('listening');
   document.getElementById('vStep').textContent='場所、種別、数量をまとめて話してください';
   document.getElementById('vText').textContent='聞いています...';
-  // Start SR first, then speak prompt (SR stays running during TTS)
-  try{srObj.start();srRunning=true;}catch(e){
-    if(e.message&&e.message.indexOf('already started')>=0){srRunning=true;}
-  }
   speakTTS('場所、種別、数量をまとめて話してください');
 }
 
 function checkComplete(){
   if(vGotP&&vGotT&&vGotQ){
-    // === COMPLETE: stop SR ===
+    // All 3 confirmed. Do NOT stop SR.
     vS=0;vOn=false;
-    try{srObj.stop();}catch(e){}srRunning=false;
     document.getElementById('vBtn').classList.remove('listening');
-    document.getElementById('vStep').textContent='✓ 完了';
+    document.getElementById('vStep').textContent='✓ 完了 → 🎤タップで次へ';
     var s=P[pI].name+'、'+T[tI].name+'、'+qty;
     document.getElementById('vText').textContent=s;
     speakTTS(s+'。記録ボタンを押してください');
@@ -340,9 +293,40 @@ function procV(txt){
     }else{document.getElementById('vText').textContent='"'+txt+'" → 数量が聞き取れません';speakTTS('数量が聞き取れません。もう一度、数量を話してください');}
   }
 }
+
+// === MATCHING & PARSING ===
 function bm(inp,list){var s=inp.toLowerCase().replace(/\s/g,'');var i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'')===s;});if(i>=0)return i;i=list.findIndex(function(x){return x.toLowerCase().replace(/\s/g,'').indexOf(s)>=0;});if(i>=0)return i;i=list.findIndex(function(x){return s.indexOf(x.toLowerCase().replace(/\s/g,''))>=0;});return i;}
 function pNum(t){var c=t.replace(/[^0-9０-９.．一二三四五六七八九十百千万]/g,'');c=c.replace(/[０-９]/g,function(s){return String.fromCharCode(s.charCodeAt(0)-65248);});c=c.replace(/[．]/g,'.');var km={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,百:100,千:1000,万:10000};if(/[一二三四五六七八九十百千万]/.test(c)){var r=0,cur=0;for(var j=0;j<c.length;j++){var ch=c[j];if(km[ch]!==undefined){var v=km[ch];if(v>=10){cur=(cur||1)*v;if(v>=10000){r+=cur;cur=0;}}else cur+=v;}}r+=cur;if(r>0)return r;}var n=parseFloat(c);if(!isNaN(n))return n;var dm=t.match(/[\d０-９]+[.．]?[\d０-９]*/);if(dm){var x=parseFloat(dm[0].replace(/[０-９]/g,function(s){return String.fromCharCode(s.charCodeAt(0)-65248);}));if(!isNaN(x))return x;}return null;}
 
+// === DATA ===
+function ld(){try{P=JSON.parse(localStorage.getItem('wc_p')||'[]');T=JSON.parse(localStorage.getItem('wc_t')||'[]');R=JSON.parse(localStorage.getItem('wc_r')||'[]');}catch(e){}}
+function sP(){localStorage.setItem('wc_p',JSON.stringify(P));}
+function sT(){localStorage.setItem('wc_t',JSON.stringify(T));}
+function sR(){localStorage.setItem('wc_r',JSON.stringify(R));}
+function initGPS(){if(!navigator.geolocation)return;navigator.geolocation.watchPosition(function(p){gLa=p.coords.latitude;gLo=p.coords.longitude;sortP();upd();},function(){},{enableHighAccuracy:true,maximumAge:10000});}
+function sortP(){if(gLa===null||!P.length)return;var cn=P[pI]?P[pI].name:'';P.sort(function(a,b){return dst(gLa,gLo,a.lat,a.lng)-dst(gLa,gLo,b.lat,b.lng);});sP();var ni=P.findIndex(function(p){return p.name===cn;});pI=ni>=0?ni:0;}
+function dst(a,b,c,d){if(!c||!d)return Infinity;var R2=6371000,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;var x=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)*Math.sin(dG/2);return R2*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+// === UI ===
+function upd(){
+  if(P.length){pI=Math.max(0,Math.min(pI,P.length-1));document.getElementById('pVal').textContent=P[pI].name;var ph=P[pI].photo;document.getElementById('pBox').innerHTML=ph?'<img src="'+ph+'">':'<div class="no-photo"><span>📷</span>写真なし</div>';}
+  else{document.getElementById('pVal').textContent='---';document.getElementById('pBox').innerHTML='<div class="no-photo"><span>📷</span>写真なし</div>';}
+  if(T.length){tI=Math.max(0,Math.min(tI,T.length-1));document.getElementById('tVal').textContent=T[tI].name;}else document.getElementById('tVal').textContent='---';
+  document.getElementById('qVal').textContent=qty;
+}
+function cyP(d){if(!P.length)return;pI=(pI+d+P.length)%P.length;upd();}
+function cyT(d){if(!T.length)return;tI=(tI+d+T.length)%T.length;upd();}
+function openNP(){numV=qty==='0'?'':qty;document.getElementById('npD').textContent=numV||'0';document.getElementById('npOvl').classList.add('show');}
+function nk(k){if(k==='C')numV='';else if(k==='B')numV=numV.slice(0,-1);else if(k==='E'){qty=numV||'0';document.getElementById('npOvl').classList.remove('show');upd();return;}else{if(k==='.'&&numV.includes('.'))return;if(k==='-'&&numV.length>0)return;numV+=k;}document.getElementById('npD').textContent=numV||'0';}
+function saveRec(){
+  if(!P.length){toast('収集場所を設定してください');return;}if(!T.length){toast('ごみ種別を設定してください');return;}
+  var now=new Date();R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty:qty,ts:now.getTime()});
+  sR();rRec();speakTTS('記録しました');toast('✓ 記録しました');qty='0';upd();
+}
+function rRec(){var c=document.getElementById('recScr');if(!R.length){c.innerHTML='<div class="no-rec">記録がありません</div>';return;}c.innerHTML=R.slice(0,100).map(function(r){return '<div class="ri"><div class="rt">'+r.time+'</div><div class="rp">'+r.place+'</div><div class="ry">'+r.type+'</div><div class="rq">'+r.qty+'</div></div>';}).join('');}
+function clearRecs(){if(!confirm('全ての記録を削除しますか？'))return;R=[];sR();rRec();toast('全削除しました');}
+
+// === SETTINGS ===
 function openSet(){document.getElementById('setOvl').classList.add('show');rM();}
 function closeSet(){document.getElementById('setOvl').classList.remove('show');upd();}
 function swT(t){cTab=t;document.getElementById('tabP').classList.toggle('active',t==='place');document.getElementById('tabT').classList.toggle('active',t==='type');rM();}
