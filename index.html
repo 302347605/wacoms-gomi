@@ -70,7 +70,7 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.0</span></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.8.1</span></div>
 <div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
 <div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
@@ -97,7 +97,7 @@ var vOn=false,vS=0,srObj=null,gLa=null,gLo=null;
 var micOK=false,ttsOK=false;
 var srRunning=false,ttsActive=false;
 var vGotP=false,vGotT=false,vGotQ=false;
-var srRestarts=0; // consecutive restarts without result (limit=3)
+var srRestarts=0; // consecutive restarts without result (limit=15, ~45sec wait)
 var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 var hasSR=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
@@ -152,20 +152,22 @@ function createSR(){
       else interim+=e.results[i][0].transcript;
     }
     document.getElementById('vText').textContent=fin||interim||'...';
-    if(fin)procV(fin);
+    if(fin){srRestarts=0;procV(fin);}
   };
   srObj.onend=function(){
     srRunning=false;
-    // If still in follow-up (vS>0), restart ONCE
-    if(vOn&&vS>0&&srRestarts<1){
+    // Auto-restart if mic is ON (regardless of vS state)
+    if(vOn&&srRestarts<15){
       srRestarts++;
       setTimeout(function(){
         if(vOn&&!srRunning){
           try{srObj.start();srRunning=true;updMic();}catch(e){micOff();}
         }
-      },500);
+      },300);
     }else if(vOn){
       micOff();
+      document.getElementById('vStep').textContent='🎤 タップで音声入力';
+      document.getElementById('vText').textContent='タイムアウト';
     }
     updMic();
   };
