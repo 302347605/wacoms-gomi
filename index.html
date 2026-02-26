@@ -70,8 +70,8 @@ body{font-family:-apple-system,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-
 </head>
 <body>
 <div class="header">
-<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.6.1</span></div>
-<div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップで音声入力</div><div class="voice-text" id="vText">待機中</div></div></div>
+<div class="header-title">WACOMS ごみ収集記録 <span style="font-size:9px;opacity:0.5">v1.7.0</span></div>
+<div class="voice-bar"><button class="voice-btn" id="vBtn" onclick="toggleVoice()">🎤</button><div class="voice-info"><div class="voice-step" id="vStep">🎤 タップでON</div><div class="voice-text" id="vText">マイクOFF</div></div></div>
 <div class="header-right"><div class="mic-ind"><div class="d off" id="micD"></div><span id="micL">OFF</span></div><div class="status-item"><div class="status-dot"></div><span>接続中</span></div></div>
 </div>
 <div class="app-body">
@@ -219,44 +219,62 @@ function updMic(){
 }
 
 // === VOICE FLOW ===
+// Mic ON → always listening. User speaks at any time.
+// Parse place/type/quantity. Auto-record when all 3 found. Reset & keep listening.
+
 function toggleVoice(){
   if(!hasSR){toast('このブラウザは音声認識に対応していません');return;}
 
   if(vOn){
-    // Turn OFF voice flow (SR stays running - no stop!)
+    // Turn OFF mic
     vOn=false;vS=0;vGotP=false;vGotT=false;vGotQ=false;ttsActive=false;
     if(speechSynthesis)speechSynthesis.cancel();
     document.getElementById('vBtn').classList.remove('listening');
-    document.getElementById('vStep').textContent='🎤 タップで音声入力';
-    document.getElementById('vText').textContent='待機中';
+    document.getElementById('vStep').textContent='🎤 タップでON';
+    document.getElementById('vText').textContent='マイクOFF';
     return;
   }
 
   // Unlock TTS on first user gesture
   unlockTTS();
 
-  // If SR not running, start it (user gesture = safe to call start)
+  // Start SR if not running
   if(!srRunning){
     if(!startSR())return;
   }
 
-  // Begin voice flow
-  vOn=true;vS=10;vGotP=false;vGotT=false;vGotQ=false;srRestarts=0;
+  // Mic ON - always listening
+  vOn=true;vS=0;vGotP=false;vGotT=false;vGotQ=false;srRestarts=0;
   document.getElementById('vBtn').classList.add('listening');
-  document.getElementById('vStep').textContent='場所、種別、数量をまとめて話してください';
-  document.getElementById('vText').textContent='聞いています...';
-  speakTTS('場所、種別、数量をまとめて話してください');
+  document.getElementById('vStep').textContent='音声待機中';
+  document.getElementById('vText').textContent='いつでも話してください';
+  speakTTS('マイクをONします');
 }
 
+// Reset after record → back to idle listening
+function resetVoice(){
+  vS=0;vGotP=false;vGotT=false;vGotQ=false;
+  if(vOn){
+    document.getElementById('vStep').textContent='音声待機中';
+    document.getElementById('vText').textContent='いつでも話してください';
+  }
+}
+
+// All 3 found → auto-record
 function checkComplete(){
   if(vGotP&&vGotT&&vGotQ){
-    // All 3 confirmed. Do NOT stop SR.
-    vS=0;vOn=false;
-    document.getElementById('vBtn').classList.remove('listening');
-    document.getElementById('vStep').textContent='✓ 完了 → 🎤タップで次へ';
     var s=P[pI].name+'、'+T[tI].name+'、'+qty;
+    document.getElementById('vStep').textContent='✓ 登録中...';
     document.getElementById('vText').textContent=s;
-    speakTTS(s+'。記録ボタンを押してください');
+    // Auto-record
+    var now=new Date();
+    R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty:qty,ts:now.getTime()});
+    sR();rRec();
+    toast('✓ '+s+' 記録しました');
+    speakTTS(s+'。記録しました');
+    // Reset for next input after short delay
+    qty='0';upd();
+    setTimeout(resetVoice,2000);
     return true;
   }
   return false;
@@ -264,21 +282,30 @@ function checkComplete(){
 
 function procV(txt){
   txt=txt.trim();
-  if(vS===10){
+
+  if(vS===0){
+    // === IDLE LISTENING: try to parse all 3 from utterance ===
     var parts=txt.split(/[、,\s　]+/);
     var foundP=-1,foundT=-1,foundQ=null,usedIdx={};
     for(var i=0;i<parts.length;i++){var m=bm(parts[i],P.map(function(p){return p.name;}));if(m>=0){foundP=m;usedIdx[i]=true;break;}}
     for(var j=0;j<parts.length;j++){if(usedIdx[j])continue;var m2=bm(parts[j],T.map(function(t){return t.name;}));if(m2>=0){foundT=m2;usedIdx[j]=true;break;}}
     for(var k=0;k<parts.length;k++){if(usedIdx[k])continue;var n=pNum(parts[k]);if(n!==null){foundQ=n;usedIdx[k]=true;break;}}
+    // Fallback: full text matching
     if(foundP<0){for(var pi=0;pi<P.length;pi++){if(txt.indexOf(P[pi].name)>=0){foundP=pi;break;}}}
     if(foundT<0){for(var ti=0;ti<T.length;ti++){if(txt.indexOf(T[ti].name)>=0){foundT=ti;break;}}}
     if(foundQ===null){foundQ=pNum(txt);}
+
+    // Nothing matched at all → ignore (background noise etc)
+    if(foundP<0&&foundT<0&&foundQ===null)return;
+
     if(foundP>=0){pI=foundP;vGotP=true;upd();}
     if(foundT>=0){tI=foundT;vGotT=true;upd();}
     if(foundQ!==null){qty=String(foundQ);vGotQ=true;upd();}
     if(checkComplete())return;
+
+    // Partial match → ask for missing items
     var ok=[];if(vGotP)ok.push(P[pI].name);if(vGotT)ok.push(T[tI].name);if(vGotQ)ok.push(qty);
-    var okMsg=ok.length>0?ok.join('、')+'は認識OK。':'';
+    var okMsg=ok.length>0?ok.join('、')+'。':'';
     if(!vGotP){vS=1;document.getElementById('vStep').textContent='収集場所を話してください';document.getElementById('vText').textContent=okMsg+'場所が不明';speakTTS(okMsg+'収集場所が聞き取れません。収集場所を話してください');}
     else if(!vGotT){vS=2;document.getElementById('vStep').textContent='ごみ種別を話してください';document.getElementById('vText').textContent=okMsg+'種別が不明';speakTTS(okMsg+'ごみ種別が聞き取れません。ごみ種別を話してください');}
     else{vS=3;document.getElementById('vStep').textContent='数量を話してください';document.getElementById('vText').textContent=okMsg+'数量が不明';speakTTS(okMsg+'数量が聞き取れません。数量を話してください');}
@@ -339,7 +366,7 @@ function nk(k){if(k==='C')numV='';else if(k==='B')numV=numV.slice(0,-1);else if(
 function saveRec(){
   if(!P.length){toast('収集場所を設定してください');return;}if(!T.length){toast('ごみ種別を設定してください');return;}
   var now=new Date();R.unshift({time:now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),date:now.toLocaleDateString('ja-JP'),place:P[pI].name,type:T[tI].name,qty:qty,ts:now.getTime()});
-  sR();rRec();speakTTS('記録しました');toast('✓ 記録しました');qty='0';upd();
+  sR();rRec();toast('✓ 記録しました');qty='0';upd();
 }
 function rRec(){var c=document.getElementById('recScr');if(!R.length){c.innerHTML='<div class="no-rec">記録がありません</div>';return;}c.innerHTML=R.slice(0,100).map(function(r){return '<div class="ri"><div class="rt">'+r.time+'</div><div class="rp">'+r.place+'</div><div class="ry">'+r.type+'</div><div class="rq">'+r.qty+'</div></div>';}).join('');}
 function clearRecs(){if(!confirm('全ての記録を削除しますか？'))return;R=[];sR();rRec();toast('全削除しました');}
